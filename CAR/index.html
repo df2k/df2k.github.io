@@ -1,0 +1,2089 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#5cc85c">
+<title>车辆油耗与费用</title>
+<style>
+:root{
+  --bg:#f5f7fa;
+  --card:#ffffff;
+  --ink:#1c2430;
+  --ink-2:#4a5568;
+  --muted:#8a94a6;
+  --line:#eef0f4;
+  --brand:#5cc85c;
+  --brand-dark:#3aa83a;
+  --brand-soft:#ebf9eb;
+  --brand-softer:#f4faf4;
+  --warn:#f5a623;
+  --warn-soft:#fef4e0;
+  --danger:#e23b3b;
+  --danger-soft:#fdeaea;
+  --blue:#4a90e2;
+  --blue-soft:#eaf3ff;
+  --purple:#8b5cf6;
+  --purple-soft:#f3edff;
+  --cyan:#3ac7d8;
+  --cyan-soft:#e6f8fb;
+  --shadow:0 4px 16px rgba(28,36,48,.06);
+  --shadow-sm:0 2px 8px rgba(28,36,48,.04);
+  --radius:14px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:calc(80px + var(--safe-b));
+}
+
+/* === Top bar === */
+header{
+  background:#fff;padding:10px 14px;display:flex;align-items:center;gap:8px;
+  position:sticky;top:0;z-index:30;
+  border-bottom:1px solid var(--line);
+}
+.veh-selector{position:relative}
+.veh-btn{
+  display:flex;align-items:center;gap:6px;
+  background:var(--brand-soft);
+  border:1px solid #cfeed7;color:var(--brand-dark);
+  border-radius:20px;padding:6px 12px;font-size:13px;cursor:pointer;
+  max-width:170px;font-weight:600;
+}
+.veh-btn .vn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
+.veh-btn svg{width:14px;height:14px;flex:0 0 auto}
+.veh-menu{
+  position:absolute;left:0;top:calc(100% + 6px);background:#fff;color:var(--ink);
+  border-radius:12px;box-shadow:var(--shadow);min-width:200px;padding:6px;
+  display:none;z-index:40;
+}
+.veh-menu.open{display:block}
+.veh-menu button{
+  display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+  background:none;border:none;padding:9px 10px;border-radius:8px;font-size:14px;
+  color:var(--ink);cursor:pointer;font-family:inherit;
+}
+.veh-menu button:hover{background:var(--brand-soft)}
+.veh-menu .add{color:var(--brand-dark);font-weight:600;border-top:1px solid var(--line);margin-top:4px;padding-top:11px}
+.head-right{margin-left:auto;display:flex;gap:6px}
+.head-btn{
+  width:36px;height:36px;border-radius:50%;background:#f3f5f9;color:var(--ink-2);
+  border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.head-btn svg{width:18px;height:18px}
+.head-btn:hover{background:var(--brand-soft);color:var(--brand-dark)}
+
+/* === Main === */
+main{max-width:960px;margin:0 auto;padding:14px}
+.view{display:none;animation:fade .2s ease}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* === Hero (consumption dashboard) === */
+.hero{
+  background:linear-gradient(135deg,#e6f7e6 0%,#c8eec8 100%);
+  border-radius:18px;padding:18px;margin-bottom:14px;
+  position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.hero::after{
+  content:'';position:absolute;right:-40px;top:-40px;
+  width:140px;height:140px;
+  background:radial-gradient(circle,rgba(255,255,255,.5),transparent);
+  pointer-events:none;
+}
+.hero-left{position:relative;z-index:1}
+.hero-label{
+  font-size:13px;color:var(--ink-2);margin-bottom:8px;
+  display:inline-flex;align-items:center;gap:3px;
+  background:rgba(255,255,255,.5);padding:3px 10px;border-radius:14px;
+  font-weight:500;
+}
+.hero-label::after{content:'›';font-size:12px;margin-left:1px}
+.hero-value{font-size:42px;font-weight:800;color:var(--ink);line-height:1}
+.hero-unit{font-size:13px;color:var(--muted);margin-top:6px;font-weight:400}
+.hero-right{text-align:right;position:relative;z-index:1}
+.hero-rank{font-size:14px;font-weight:700;color:var(--brand-dark);margin-bottom:8px}
+.hero-stars{display:flex;gap:3px;justify-content:flex-end}
+.hero-stars .star{width:16px;height:16px;color:#f5b800}
+.hero-stars .star.off{color:#e0e0e0}
+
+/* === Card === */
+.card{
+  background:var(--card);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:14px;margin-bottom:14px;
+}
+.card-head{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;
+}
+.card-title{font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px}
+.card-title svg{width:18px;height:18px;color:var(--brand)}
+.card-action{font-size:13px;color:var(--brand-dark);cursor:pointer;display:flex;align-items:center;gap:2px;font-weight:600}
+.card-action svg{width:14px;height:14px}
+
+/* === Stats grid === */
+.stats-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  border-radius:10px;overflow:hidden;
+}
+.stat-cell{
+  padding:10px 4px;text-align:center;position:relative;
+}
+.stat-cell:not(:last-child)::after{
+  content:'';position:absolute;right:0;top:20%;height:60%;width:1px;background:var(--line);
+}
+.stat-cell .lbl{font-size:12px;color:var(--muted);margin-bottom:4px;line-height:1.3}
+.stat-cell .val{font-size:18px;font-weight:700;color:var(--ink);line-height:1.2}
+.stat-cell .val.green{color:var(--brand-dark)}
+.stat-cell .val.danger{color:var(--danger)}
+.stat-cell .unit{font-size:10px;color:var(--muted);font-weight:400;margin-top:2px;display:block}
+
+/* === Chart === */
+.chart-wrap{width:100%;overflow:hidden;margin-top:8px}
+.chart-wrap svg{width:100%;height:auto;display:block}
+.chart-legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.chart-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
+.range-seg{display:flex;background:#eef0f4;border-radius:8px;padding:2px}
+.range-seg button{
+  flex:1;border:none;background:none;padding:5px 10px;border-radius:6px;
+  color:var(--muted);cursor:pointer;font-size:12px;font-family:inherit;
+}
+.range-seg button.on{background:#fff;color:var(--brand-dark);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+
+/* === Stats bar (horizontal scroll for fees page) === */
+.stats-bar{
+  display:flex;
+  background:var(--brand-softer);border:1px solid #d8efd8;
+  border-radius:12px;padding:14px 4px;margin-bottom:14px;
+  overflow-x:auto;scrollbar-width:none;
+}
+.stats-bar::-webkit-scrollbar{display:none}
+.stats-bar-cell{
+  flex:0 0 auto;min-width:88px;text-align:center;padding:0 12px;
+  border-right:1px solid #c8e6c8;
+}
+.stats-bar-cell:last-child{border-right:none}
+.stats-bar-cell .lbl{font-size:11px;color:var(--ink-2);margin-bottom:4px;white-space:nowrap}
+.stats-bar-cell .val{font-size:16px;font-weight:700;color:var(--brand-dark);white-space:nowrap}
+.stats-bar-cell .unit{font-size:10px;color:var(--ink-2);white-space:nowrap}
+
+/* === Filter chips === */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:0 0 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:0 0 auto;padding:6px 14px;border-radius:18px;background:#eef0f4;
+  color:var(--ink-2);font-size:13px;cursor:pointer;border:none;font-family:inherit;
+}
+.chip.active{background:var(--brand);color:#fff;font-weight:600}
+
+/* === List === */
+.list{display:flex;flex-direction:column;gap:10px}
+.item{
+  background:var(--card);border-radius:13px;
+  box-shadow:var(--shadow-sm);padding:12px 14px;
+  display:flex;align-items:center;gap:12px;position:relative;cursor:pointer;
+  transition:transform .08s;
+}
+.item:active{transform:scale(.99)}
+.item-stripe{width:8px;height:38px;border-radius:4px;background:var(--brand);flex:0 0 auto}
+.item.s-fuel .item-stripe{background:var(--brand)}
+.item.s-maint .item-stripe{background:var(--blue)}
+.item.s-repair .item-stripe{background:var(--warn)}
+.item.s-park .item-stripe{background:var(--purple)}
+.item.s-toll .item-stripe{background:var(--ink-2)}
+.item.s-wash .item-stripe{background:var(--cyan)}
+.item.s-insurance .item-stripe{background:var(--brand-dark)}
+.item.s-fine .item-stripe{background:var(--danger)}
+.item.s-other .item-stripe{background:var(--muted)}
+.item-body{flex:1;min-width:0}
+.item-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.item-date{font-size:12px;color:var(--muted);font-weight:600}
+.item-cat{font-size:14px;font-weight:600}
+.item-amount{font-weight:700;font-size:15px;white-space:nowrap}
+.item-meta{font-size:12px;color:var(--muted);margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.item-arrow{color:var(--muted);font-size:18px;flex:0 0 auto}
+.cons-high{color:var(--danger);font-weight:700}
+.cons-low{color:var(--brand-dark);font-weight:700}
+
+.empty{
+  text-align:center;color:var(--muted);padding:32px 16px;font-size:14px;
+}
+.empty svg{width:42px;height:42px;opacity:.4;margin-bottom:8px}
+
+/* === Bottom Nav (3 items + FAB) === */
+.bottom-nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:30;
+  background:#fff;
+  box-shadow:0 -2px 12px rgba(28,36,48,.06);
+  display:flex;padding:6px 0 calc(6px + var(--safe-b));
+}
+.bn{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:6px 4px;font-size:11px;color:var(--muted);cursor:pointer;user-select:none;
+}
+.bn.active{color:var(--brand-dark);font-weight:600}
+.bn svg{width:22px;height:22px}
+.bn-fab{
+  flex:1;display:flex;justify-content:center;align-items:flex-start;
+  position:relative;padding-top:0;
+}
+.fab{
+  position:absolute;top:-22px;left:50%;transform:translateX(-50%);
+  width:54px;height:54px;border-radius:50%;
+  background:linear-gradient(135deg,var(--brand),var(--brand-dark));
+  color:#fff;border:none;
+  box-shadow:0 6px 18px rgba(58,168,58,.45);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:30px;line-height:1;font-weight:300;
+}
+.fab:active{transform:translateX(-50%) scale(.95)}
+
+/* === Sheet (overlay modal) === */
+.overlay{
+  position:fixed;inset:0;background:rgba(20,28,40,.5);z-index:50;
+  display:none;align-items:flex-end;justify-content:center;
+}
+.overlay.open{display:flex;animation:fade .2s}
+.sheet{
+  background:#fff;width:100%;max-width:540px;
+  border-radius:18px 18px 0 0;
+  padding:14px 16px calc(16px + var(--safe-b));
+  max-height:92vh;overflow:auto;
+}
+@media(min-width:560px){
+  .overlay{align-items:center;padding:20px}
+  .sheet{border-radius:18px}
+}
+.sheet-bar{
+  display:flex;justify-content:center;margin-bottom:8px;
+}
+.sheet-bar::before{
+  content:'';width:36px;height:4px;background:#d8dde6;border-radius:2px;
+}
+.sheet-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 4px 10px;border-bottom:1px solid var(--line);margin-bottom:12px;
+}
+.sheet-title{font-size:16px;font-weight:700}
+.sheet-close{
+  background:none;border:none;color:var(--muted);font-size:24px;
+  cursor:pointer;line-height:1;padding:0 4px;font-family:inherit;
+}
+.sheet-back{
+  background:none;border:none;color:var(--ink);font-size:20px;
+  cursor:pointer;padding:0 4px;line-height:1;
+}
+
+/* === Row-style form fields (matches reference image 3) === */
+.form-row{
+  display:flex;align-items:center;gap:8px;
+  padding:12px 8px;border-bottom:1px solid var(--line);
+  min-height:48px;
+}
+.form-row:first-child{border-top:1px solid var(--line)}
+.form-row .lbl{
+  flex:0 0 auto;min-width:80px;font-size:14px;color:var(--ink-2);
+}
+.form-row .lbl .req{color:var(--danger);margin-left:2px}
+.form-row .val{
+  flex:1;display:flex;align-items:center;justify-content:flex-end;gap:6px;
+  font-size:14px;color:var(--ink);min-width:0;
+}
+.form-row .val input,
+.form-row .val select,
+.form-row .val textarea{
+  border:none;background:transparent;padding:6px 0;text-align:right;
+  font-size:14px;color:var(--ink);width:100%;font-family:inherit;
+}
+.form-row .val input:focus,
+.form-row .val select:focus,
+.form-row .val textarea:focus{outline:none}
+.form-row .val .hint{color:var(--muted);font-size:13px}
+.form-row .val .arrow{color:var(--muted)}
+
+.col3{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;
+  padding:8px;border:1px solid var(--line);border-radius:8px;margin:8px 8px;
+}
+.col3 .lbl{
+  font-size:12px;color:var(--muted);margin-bottom:4px;
+  display:flex;align-items:center;gap:2px;
+}
+.col3 .lbl .req{color:var(--danger)}
+.col3 input{
+  width:100%;border:none;background:transparent;
+  padding:4px 2px;font-size:14px;color:var(--ink);font-family:inherit;
+}
+.col3 input:focus{outline:none}
+.col3 .eq{color:var(--muted);font-size:14px;align-self:end;padding-bottom:4px}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 8px 4px}
+.two-col .cell .lbl{font-size:12px;color:var(--muted);margin-bottom:5px}
+.two-col .cell input{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px;color:var(--ink);background:#fbfcfe;font-family:inherit;transition:border-color .15s}
+.two-col .cell input:focus{outline:none;border-color:var(--brand);background:#fff}
+.amount-box{margin:4px 8px 10px;border:1px solid var(--brand);border-radius:12px;padding:11px 12px;background:var(--brand-soft)}
+.amount-box .lbl{font-size:12px;color:var(--ink-2);margin-bottom:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.amount-box .req{color:var(--danger)}
+.amount-box .auto-hint{color:var(--brand);font-size:11px;font-weight:500}
+.amount-box input{width:100%;border:none;background:transparent;padding:2px 0;font-size:20px;font-weight:700;color:var(--ink);font-family:inherit}
+.amount-box input:focus{outline:none}
+
+.toggle-pair{
+  display:flex;gap:8px;
+}
+.toggle-pair button{
+  flex:1;padding:7px 12px;border-radius:8px;
+  border:1px solid var(--line);background:#fff;color:var(--ink-2);
+  font-size:13px;cursor:pointer;font-family:inherit;
+}
+.toggle-pair button.on{
+  background:var(--brand);color:#fff;border-color:var(--brand);font-weight:600;
+}
+
+.seg{
+  display:flex;background:#eef0f4;border-radius:10px;padding:3px;
+}
+.seg button{
+  flex:1;border:none;background:none;padding:8px;border-radius:8px;
+  font-size:13px;color:var(--muted);cursor:pointer;font-family:inherit;
+}
+.seg button.on{background:#fff;color:var(--brand-dark);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border:none;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:600;
+  cursor:pointer;transition:transform .08s;font-family:inherit;
+}
+.btn:active{transform:scale(.97)}
+.btn-primary{
+  background:linear-gradient(135deg,var(--brand),var(--brand-dark));
+  color:#fff;width:100%;padding:13px;
+}
+.btn-primary:disabled{opacity:.5}
+.btn-ghost{background:var(--brand-soft);color:var(--brand-dark)}
+.btn-danger{background:var(--danger-soft);color:var(--danger)}
+.btn-sm{padding:7px 12px;font-size:13px;border-radius:9px}
+
+.section-title{
+  font-size:13px;color:var(--muted);padding:14px 8px 6px;font-weight:600;
+  display:flex;align-items:center;gap:4px;
+}
+.section-title::before{content:'|';color:var(--brand);font-size:16px}
+
+.toast{
+  position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(20px);
+  background:#1c2430;color:#fff;padding:10px 18px;border-radius:30px;font-size:14px;
+  z-index:90;opacity:0;transition:.25s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.muted-note{font-size:12px;color:var(--muted);line-height:1.6;margin-top:6px}
+hr.sep{border:none;border-top:1px solid var(--line);margin:14px 0}
+
+.veh-item{
+  display:flex;align-items:center;gap:10px;
+  padding:12px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;
+}
+.veh-item .vi{
+  width:36px;height:36px;border-radius:9px;
+  background:var(--brand-soft);color:var(--brand-dark);
+  display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+}
+.veh-item .vi svg{width:18px;height:18px}
+.veh-item .vn{flex:1;font-weight:600;min-width:0}
+.veh-item .vn small{display:block;color:var(--muted);font-size:12px;font-weight:400}
+.data-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.file-row{font-size:12px;color:var(--muted);margin-top:6px;min-height:16px}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);cursor:pointer;margin:4px 0 10px;user-select:none}
+.check input{width:17px;height:17px;accent-color:var(--brand);flex:0 0 auto}
+.triple-row{margin:10px 8px 0;padding:12px 10px 12px;background:var(--bg);border-radius:12px}
+.triple-row .triple-lbl{display:flex;gap:6px;font-size:12px;color:var(--muted);margin-bottom:8px;align-items:flex-end}
+.triple-row .triple-lbl span{flex:1;text-align:center}
+.triple-row .triple-lbl .op{color:var(--brand);flex:0 0 auto;text-align:center;font-weight:600}
+.triple-row .triple-lbl .req{color:var(--danger);margin-left:1px}
+.triple-row .triple-cells{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.triple-row .triple-cells input{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 8px;font-size:15px;color:var(--ink);background:#fff;font-family:inherit;text-align:center;transition:border-color .15s}
+.triple-row .triple-cells input:focus{outline:none;border-color:var(--brand);background:#fffbf2}
+.triple-row .triple-cells input::placeholder{color:var(--muted)}
+
+/* === Action sheet (FAB options) === */
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px}
+.action-tile{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  padding:24px 16px;border-radius:14px;background:var(--bg);
+  border:none;cursor:pointer;font-family:inherit;
+  transition:transform .1s;
+}
+.action-tile:active{transform:scale(.97)}
+.action-tile.fuel{background:var(--brand-soft);color:var(--brand-dark)}
+.action-tile.expense{background:var(--blue-soft);color:var(--blue)}
+.action-tile svg{width:38px;height:38px}
+.action-tile .lbl{font-size:15px;font-weight:700}
+
+/* === Detail modal content === */
+.detail-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;
+}
+.detail-row:last-child{border-bottom:none}
+.detail-row .k{color:var(--muted)}
+.detail-row .v{font-weight:600;text-align:right}
+.cat-bar{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px}
+.cat-bar .bar{flex:1;height:8px;background:#eef0f4;border-radius:4px;overflow:hidden}
+.cat-bar .fill{height:100%;background:linear-gradient(90deg,var(--brand),var(--brand-dark));border-radius:4px}
+.cat-bar .name{flex:0 0 60px}
+.cat-bar .amt{flex:0 0 70px;text-align:right;font-weight:600}
+
+/* === Home overview === */
+.home-veh{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#2f6df0,#1f6feb);color:#fff;border-radius:16px;padding:15px 16px;margin-bottom:12px;cursor:pointer;box-shadow:0 8px 20px rgba(31,111,235,.22)}
+.home-veh .hv-ic{width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.home-veh .hv-ic svg{width:24px;height:24px}
+.home-veh .hv-info{flex:1;min-width:0}
+.home-veh .hv-name{font-size:17px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home-veh .hv-sub{font-size:12px;opacity:.85;margin-top:2px}
+.home-veh .hv-arrow{margin-left:auto}
+.home-veh .hv-arrow svg{width:20px;height:20px;opacity:.8}
+.quick-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.quick-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;border:none;border-radius:14px;padding:16px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;color:#fff;transition:transform .1s}
+.quick-btn:active{transform:scale(.97)}
+.quick-btn.fuel{background:linear-gradient(135deg,#34c759,#1aa260)}
+.quick-btn.expense{background:linear-gradient(135deg,#3a76c2,#2f6df0)}
+.quick-btn svg{width:30px;height:30px}
+.add-entry-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:var(--brand-soft);color:var(--brand-dark);border:1px dashed var(--brand);border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:12px;font-family:inherit;transition:transform .1s}
+.add-entry-btn:active{transform:scale(.99)}
+.add-entry-btn.exp{background:var(--blue-soft);color:var(--blue);border-color:var(--blue)}
+.add-entry-btn svg{width:18px;height:18px}
+
+/* === 油耗列表（详情模式）=== */
+.list-toolbar{display:flex;align-items:center;justify-content:space-between;padding:0 4px 12px}
+.year-pill{display:inline-flex;align-items:center;gap:6px;background:var(--brand-soft);color:var(--brand-dark);border-radius:18px;padding:5px 12px;font-size:13px;font-weight:700;user-select:none}
+.year-pill select{background:transparent;border:none;color:var(--brand-dark);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;outline:none;padding-right:14px;-webkit-appearance:none;appearance:none}
+.year-pill svg{width:13px;height:13px;pointer-events:none;margin-left:-12px}
+
+.list-stats{display:flex;gap:18px;overflow-x:auto;background:#f6f8fc;border-radius:12px;padding:10px 14px;margin-bottom:12px}
+.list-stats::-webkit-scrollbar{display:none}
+.list-stat{flex:0 0 auto;text-align:center;min-width:62px}
+.list-stat .lbl{font-size:11px;color:var(--muted)}
+.list-stat .val{font-size:17px;font-weight:700;line-height:1.15;margin-top:2px}
+.list-stat .unit{font-size:10px;color:var(--muted);font-weight:400}
+.list-stat .val.green{color:var(--green)}
+
+.fuel-row{display:flex;align-items:center;gap:10px;background:#fff;border-radius:12px;box-shadow:0 4px 14px rgba(28,36,48,.06);padding:11px 14px;margin-bottom:8px;border-left:3px solid var(--brand);cursor:pointer}
+.fuel-row:active{background:#f6f8fc}
+.fuel-row .fr-date{font-weight:700;font-size:15px;color:var(--ink);min-width:48px}
+.fuel-row .fr-cons{flex:1;font-size:15px}
+.fuel-row .fr-cons .num{font-weight:700}
+.fuel-row .fr-cons .u{font-size:12px;color:var(--muted);margin-left:2px}
+.fuel-row .fr-cons.high .num{color:var(--danger)}
+.fuel-row .fr-cons.low .num{color:var(--green)}
+.fuel-row .fr-odo{font-size:13px;color:var(--muted);font-weight:500}
+.fuel-row .fr-odo.amt{color:var(--ink);font-weight:700;font-size:14px}
+.fuel-row .fr-arrow{color:var(--muted);font-size:18px;line-height:1;margin-left:2px}
+
+.fuel-row.full{border-left-color:var(--green)}
+.fuel-row.light{border-left-color:var(--orange)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="veh-selector">
+    <button class="veh-btn" id="vehBtn" onclick="toggleVehMenu()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><path d="M3 11h18v6a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4a1 1 0 0 1-1-1z"/></svg>
+      <span class="vn" id="vehName">添加车辆</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="veh-menu" id="vehMenu"></div>
+  </div>
+  <div class="head-right">
+    <button class="head-btn" onclick="openDetails()" title="详情">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+
+<!-- ============ VIEW: 首页 / 数据总览 ============ -->
+<section class="view active" id="view-home">
+  <div id="homeEmpty" class="empty" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><path d="M3 11h18v6a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4a1 1 0 0 1-1-1z"/></svg>
+    <div>请先在左上角添加一辆车 🚗</div>
+  </div>
+  <div id="homeContent" style="display:none">
+    <div class="home-veh" onclick="toggleVehMenu()">
+      <div class="hv-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><path d="M3 11h18v6a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4a1 1 0 0 1-1-1z"/></svg></div>
+      <div class="hv-info"><div class="hv-name" id="homeVehName">--</div><div class="hv-sub" id="homeVehSub"></div></div>
+      <div class="hv-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>
+    </div>
+
+    <div class="hero">
+      <div class="hero-left">
+        <div class="hero-label">最新油耗</div>
+        <div class="hero-value"><span id="homeCons">--</span></div>
+        <div class="hero-unit">升 / 百公里</div>
+      </div>
+      <div class="hero-right">
+        <div class="hero-rank" id="homeRank">暂无数据</div>
+        <div class="hero-stars" id="homeStars"></div>
+      </div>
+    </div>
+
+    <div class="quick-row">
+      <button class="quick-btn fuel" onclick="openAddFuel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V4h11v18"/><path d="M16 9l3 1.5V18a2 2 0 0 0 4 0V9l-3 1.5"/></svg>
+        添加加油
+      </button>
+      <button class="quick-btn expense" onclick="openAddExpense()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/></svg>
+        添加费用
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          数据总览
+        </div>
+        <div class="card-action" onclick="openDetails()">详情 ›</div>
+      </div>
+      <div class="stats-grid" id="homeStats"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          最近记录
+        </div>
+        <div class="card-action" onclick="switchView('expenses')">全部 ›</div>
+      </div>
+      <div class="list" id="homeRecent"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ VIEW: 油耗 ============ -->
+<section class="view" id="view-consumption">
+  <div id="consEmpty" class="empty" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><path d="M3 11h18v6a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4a1 1 0 0 1-1-1z"/></svg>
+    <div>请先在右上角添加一辆车 🚗</div>
+  </div>
+  <div id="consContent" style="display:none">
+    <button class="add-entry-btn" onclick="openAddFuel()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V4h11v18"/><path d="M16 9l3 1.5V18a2 2 0 0 0 4 0V9l-3 1.5"/></svg>
+      添加加油记录
+    </button>
+    <div class="hero">
+      <div class="hero-left">
+        <div class="hero-label">最新油耗</div>
+        <div class="hero-value"><span id="heroCons">--</span></div>
+        <div class="hero-unit">升 / 百公里</div>
+      </div>
+      <div class="hero-right">
+        <div class="hero-rank" id="heroRank">暂无数据</div>
+        <div class="hero-stars" id="heroStars"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          统计
+        </div>
+      </div>
+      <div class="stats-grid" id="statsGrid"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-5 3 3 5-7"/></svg>
+          油耗变化趋势
+        </div>
+        <div class="range-seg" id="rangeSeg">
+          <button class="on" data-r="6" onclick="setRange('6')">半年</button>
+          <button data-r="12" onclick="setRange('12')">全年</button>
+          <button data-r="all" onclick="setRange('all')">全部</button>
+        </div>
+      </div>
+      <div class="chart-wrap" id="consChart"></div>
+      <div class="chart-legend">
+        <span><i style="background:var(--brand)"></i>实际油耗</span>
+        <span><i style="background:#b8b8b8"></i>平均线</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
+          最近加油
+        </div>
+        <div class="card-action" onclick="switchView('expenses');filterCat('fuel')">查看全部 ›</div>
+      </div>
+      <div class="list" id="recentList"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ VIEW: 费用 ============ -->
+<section class="view" id="view-expenses">
+  <div id="expEmpty" class="empty" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>
+    <div>请先添加车辆</div>
+  </div>
+  <div id="expContent" style="display:none">
+    <button class="add-entry-btn exp" onclick="openAddExpense()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/></svg>
+      添加费用记录
+    </button>
+    <div class="stats-bar" id="expStatsBar"></div>
+    <div class="chips" id="expChips">
+      <button class="chip active" data-cat="all" onclick="filterCat('all')">全部</button>
+      <button class="chip" data-cat="fuel" onclick="filterCat('fuel')">加油</button>
+      <button class="chip" data-cat="保养" onclick="filterCat('保养')">保养</button>
+      <button class="chip" data-cat="维修" onclick="filterCat('维修')">维修</button>
+      <button class="chip" data-cat="停车费" onclick="filterCat('停车费')">停车费</button>
+      <button class="chip" data-cat="过路费" onclick="filterCat('过路费')">过路费</button>
+      <button class="chip" data-cat="洗车" onclick="filterCat('洗车')">洗车</button>
+      <button class="chip" data-cat="保险" onclick="filterCat('保险')">保险</button>
+      <button class="chip" data-cat="罚款" onclick="filterCat('罚款')">罚款</button>
+      <button class="chip" data-cat="其他" onclick="filterCat('其他')">其他</button>
+    </div>
+    <div class="list" id="expList"></div>
+  </div>
+</section>
+
+<!-- ============ VIEW: 数据 ============ -->
+<section class="view" id="view-data">
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><path d="M3 11h18v6a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4a1 1 0 0 1-1-1z"/></svg>
+        我的车辆
+      </div>
+      <div class="card-action" onclick="openVehSheet()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        添加
+      </div>
+    </div>
+    <div id="vehListBox"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:12px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.6 1.5A3.5 3.5 0 0 0 6.5 19z"/><path d="M12 12v6"/><path d="M9.5 14.5L12 12l2.5 2.5"/></svg>
+      WebDAV 同步
+    </div>
+    <div class="field">
+      <label>服务器地址</label>
+      <input type="text" id="wd_url" placeholder="https://dav.example.com/">
+    </div>
+    <div class="two">
+      <div class="field"><label>用户名</label><input type="text" id="wd_user"></div>
+      <div class="field"><label>密码</label><input type="password" id="wd_pass"></div>
+    </div>
+    <div class="field">
+      <label>远程文件路径</label>
+      <input type="text" id="wd_path" placeholder="/carlife/backup.json">
+    </div>
+    <label class="check"><input type="checkbox" id="wd_auto"> 保存后自动同步（保留最近 5 个版本）</label>
+    <div class="data-btns">
+      <button class="btn btn-ghost" onclick="syncToWebDAV()">上传备份</button>
+      <button class="btn btn-ghost" onclick="syncFromWebDAV()">下载恢复</button>
+    </div>
+    <p class="file-row" id="wd_status"></p>
+    <p class="muted-note">配置仅存于本机浏览器。密码以明文存于 localStorage，请勿在公共设备使用。<br>需对方服务器允许跨域(CORS)或在本机/内网直接打开本文件。</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:12px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></svg>
+      数据管理
+    </div>
+    <div class="data-btns">
+      <button class="btn btn-ghost" onclick="exportData()">导出 JSON</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('impFile').click()">导入 JSON</button>
+    </div>
+    <input type="file" id="impFile" accept=".json" style="display:none" onchange="importData(this)">
+    <p class="muted-note">导出备份后可换设备恢复；导入按 ID 合并到现有数据。</p>
+    <hr class="sep">
+    <button class="btn btn-danger" style="width:100%" onclick="clearAll()">清空当前车辆数据</button>
+    <p class="muted-note">⚠️ 此操作不可撤销，建议先导出备份。</p>
+  </div>
+</section>
+
+</main>
+
+<!-- =========== BOTTOM NAV =========== -->
+<nav class="bottom-nav">
+  <div class="bn active" data-v="home" onclick="switchView('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1V10"/></svg>
+    首页
+  </div>
+  <div class="bn" data-v="consumption" onclick="switchView('consumption')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5c-3.2 0-5.8 2-6.8 4.8C4.5 9 4.5 11 4.5 12.5 4.5 17.2 6.7 19.3 9 21.4l3-3 3 3c2.3-2.1 4.5-4.2 4.5-8.9 0-1.5 0-3.5-.7-5.2C17.8 4.5 15.2 2.5 12 2.5z"/></svg>
+    油耗
+  </div>
+  <div class="bn-fab" onclick="openActionSheet()">
+    <button class="fab" type="button" aria-label="添加">+</button>
+  </div>
+  <div class="bn" data-v="expenses" onclick="switchView('expenses')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    费用
+  </div>
+  <div class="bn" data-v="data" onclick="switchView('data')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></svg>
+    数据
+  </div>
+</nav>
+
+<!-- =========== FAB ACTION SHEET =========== -->
+<div class="overlay" id="fabSheet">
+  <div class="sheet" style="max-width:420px">
+    <div class="sheet-bar"></div>
+    <div class="sheet-title" style="text-align:center;margin-bottom:14px">添加记录</div>
+    <div class="action-grid">
+      <button class="action-tile fuel" onclick="closeOverlay('fabSheet');openAddFuel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V4h11v18"/><path d="M16 9l3 1.5V18a2 2 0 0 0 4 0V9l-3 1.5"/></svg>
+        <span class="lbl">加油</span>
+      </button>
+      <button class="action-tile expense" onclick="closeOverlay('fabSheet');openAddExpense()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/></svg>
+        <span class="lbl">费用</span>
+      </button>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:14px" onclick="closeOverlay('fabSheet')">取消</button>
+  </div>
+</div>
+
+<!-- =========== ADD FUEL SHEET =========== -->
+<div class="overlay" id="fuelSheet">
+  <div class="sheet">
+    <div class="sheet-bar"></div>
+    <div class="sheet-head">
+      <button class="sheet-back" onclick="closeOverlay('fuelSheet')">‹</button>
+      <div class="sheet-title" id="fuelSheetTitle">我的小车</div>
+      <button class="sheet-close" onclick="closeOverlay('fuelSheet')">×</button>
+    </div>
+
+    <div class="form-row">
+      <div class="lbl">加油日期<span class="req">*</span></div>
+      <div class="val"><input type="date" id="f_date"><span class="arrow">›</span></div>
+    </div>
+    <div class="form-row">
+      <div class="lbl">当前里程<span class="req">*</span></div>
+      <div class="val"><input type="number" id="f_odo" inputmode="numeric" placeholder="0"><span class="hint">公里</span></div>
+    </div>
+
+    <div class="triple-row">
+      <div class="triple-lbl">
+        <span>机显单价 (元/升)</span>
+        <span class="op">×</span>
+        <span>加油量 (升)</span>
+        <span class="op">=</span>
+        <span>机显金额 (元) <span class="req">*</span></span>
+      </div>
+      <div class="triple-cells">
+        <input type="number" id="f_price" inputmode="decimal" step="0.01" placeholder="0.00">
+        <input type="number" id="f_liters" inputmode="decimal" step="0.01" placeholder="0.00">
+        <input type="number" id="f_amount" inputmode="decimal" step="0.01" placeholder="0.00">
+      </div>
+    </div>
+
+    <div class="triple-row">
+      <div class="triple-lbl">
+        <span>实付单价</span>
+        <span>优惠金额</span>
+        <span>实付金额 <span class="req">*</span></span>
+      </div>
+      <div class="triple-cells">
+        <input type="number" id="f_real_price" inputmode="decimal" step="0.01" placeholder="0.00">
+        <input type="number" id="f_discount" inputmode="decimal" step="0.01" placeholder="0.00" value="0">
+        <input type="number" id="f_paid" inputmode="decimal" step="0.01" placeholder="0.00">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="lbl">是否加满跳枪？</div>
+      <div class="val" style="justify-content:flex-end">
+        <div class="toggle-pair" style="max-width:200px">
+          <button type="button" id="f_full_yes" onclick="setFull(1)">已跳枪</button>
+          <button type="button" id="f_full_no" class="on" onclick="setFull(0)">未跳枪</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="lbl">油量警告灯亮了吗？</div>
+      <div class="val" style="justify-content:flex-end">
+        <div class="toggle-pair" style="max-width:200px">
+          <button type="button" id="f_light_yes" onclick="setLight(1)">油灯亮</button>
+          <button type="button" id="f_light_no" class="on" onclick="setLight(0)">没有亮</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:14px 8px 8px">
+      <button class="btn btn-primary" onclick="saveFuel()">保存</button>
+    </div>
+
+    <div class="section-title">选项</div>
+
+    <div class="form-row">
+      <div class="lbl">加油站</div>
+      <div class="val"><input type="text" id="f_station" placeholder="选填"><span class="arrow">›</span></div>
+    </div>
+    <div class="form-row">
+      <div class="lbl">燃油标号</div>
+      <div class="val">
+        <select id="f_grade">
+          <option>92#汽油</option>
+          <option>95#汽油</option>
+          <option>98#汽油</option>
+          <option>0#柴油</option>
+          <option>-10#柴油</option>
+        </select>
+        <span class="arrow">›</span>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="lbl">上次记录了吗？</div>
+      <div class="val" style="justify-content:flex-end">
+        <div class="toggle-pair" style="max-width:200px">
+          <button type="button" id="f_record_yes" class="on" onclick="setRecorded(1)">记录了</button>
+          <button type="button" id="f_record_no" onclick="setRecorded(0)">没记录</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-row" style="align-items:flex-start;min-height:auto;padding:8px">
+      <div class="lbl">编辑备注</div>
+      <div class="val"><textarea id="f_note" rows="2" placeholder="选填" style="text-align:left;width:100%"></textarea></div>
+    </div>
+  </div>
+</div>
+
+<!-- =========== ADD EXPENSE SHEET =========== -->
+<div class="overlay" id="expenseSheet">
+  <div class="sheet">
+    <div class="sheet-bar"></div>
+    <div class="sheet-head">
+      <button class="sheet-back" onclick="closeOverlay('expenseSheet')">‹</button>
+      <div class="sheet-title" id="expenseSheetTitle">添加费用</div>
+      <button class="sheet-close" onclick="closeOverlay('expenseSheet')">×</button>
+    </div>
+    <div class="form-row">
+      <div class="lbl">日期<span class="req">*</span></div>
+      <div class="val"><input type="date" id="e_date"><span class="arrow">›</span></div>
+    </div>
+    <div class="form-row">
+      <div class="lbl">分类<span class="req">*</span></div>
+      <div class="val" style="justify-content:flex-end">
+        <div class="seg" id="e_catSeg" style="flex-wrap:wrap;max-width:280px;justify-content:flex-end">
+          <button class="on" data-cat="保养" onclick="setExpCat('保养')">保养</button>
+          <button data-cat="维修" onclick="setExpCat('维修')">维修</button>
+          <button data-cat="停车费" onclick="setExpCat('停车费')">停车费</button>
+          <button data-cat="过路费" onclick="setExpCat('过路费')">过路费</button>
+          <button data-cat="洗车" onclick="setExpCat('洗车')">洗车</button>
+          <button data-cat="保险" onclick="setExpCat('保险')">保险</button>
+          <button data-cat="罚款" onclick="setExpCat('罚款')">罚款</button>
+          <button data-cat="其他" onclick="setExpCat('其他')">其他</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="lbl">子项</div>
+      <div class="val"><select id="e_sub"></select><span class="arrow">›</span></div>
+    </div>
+    <div class="form-row">
+      <div class="lbl">金额 (¥)<span class="req">*</span></div>
+      <div class="val"><input type="number" id="e_cost" inputmode="decimal" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="form-row">
+      <div class="lbl">里程 (km)</div>
+      <div class="val"><input type="number" id="e_odo" inputmode="numeric" placeholder="选填"></div>
+    </div>
+    <div class="form-row">
+      <div class="lbl">地点 / 商家</div>
+      <div class="val"><input type="text" id="e_location" placeholder="选填"><span class="arrow">›</span></div>
+    </div>
+    <div class="form-row" style="align-items:flex-start;min-height:auto;padding:8px">
+      <div class="lbl">备注</div>
+      <div class="val"><textarea id="e_note" rows="2" placeholder="选填" style="text-align:left;width:100%"></textarea></div>
+    </div>
+    <div style="padding:14px 8px 8px">
+      <button class="btn btn-primary" style="background:linear-gradient(135deg,var(--blue),#3a76c2)" onclick="saveExpense()">保存费用</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========== VEHICLE SHEET =========== -->
+<div class="overlay" id="vehSheet">
+  <div class="sheet">
+    <div class="sheet-bar"></div>
+    <div class="sheet-head">
+      <button class="sheet-back" onclick="closeOverlay('vehSheet')">‹</button>
+      <div class="sheet-title" id="vehSheetTitle">添加车辆</div>
+      <button class="sheet-close" onclick="closeOverlay('vehSheet')">×</button>
+    </div>
+    <div class="form-row">
+      <div class="lbl">车辆名称<span class="req">*</span></div>
+      <div class="val"><input type="text" id="v_name" placeholder="例如 我家轿车"></div>
+    </div>
+    <div class="form-row">
+      <div class="lbl">车牌号</div>
+      <div class="val"><input type="text" id="v_plate" placeholder="京A·12345"></div>
+    </div>
+    <div class="form-row">
+      <div class="lbl">油箱容量</div>
+      <div class="val"><input type="number" id="v_cap" inputmode="numeric" placeholder="50"><span class="hint">升</span></div>
+    </div>
+    <div class="form-row" style="align-items:flex-start;min-height:auto;padding:8px">
+      <div class="lbl">备注</div>
+      <div class="val"><textarea id="v_note" rows="2" placeholder="选填" style="text-align:left;width:100%"></textarea></div>
+    </div>
+    <div style="padding:14px 8px 8px">
+      <button class="btn btn-primary" onclick="saveVehicle()">保存车辆</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========== DETAIL MODAL =========== -->
+<div class="overlay" id="detailSheet">
+  <div class="sheet" style="max-width:520px">
+    <div class="sheet-bar"></div>
+    <div class="sheet-head">
+      <button class="sheet-back" onclick="closeOverlay('detailSheet')">‹</button>
+      <div class="sheet-title">详细统计</div>
+      <button class="sheet-close" onclick="closeOverlay('detailSheet')">×</button>
+    </div>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<!-- =========== 油耗列表（详情模式） =========== -->
+<div class="overlay" id="listSheet">
+  <div class="sheet" style="max-width:540px">
+    <div class="sheet-bar"></div>
+    <div class="sheet-head">
+      <button class="sheet-back" onclick="closeOverlay('listSheet')">‹</button>
+      <div class="sheet-title" id="listTitle">油耗列表</div>
+      <button class="sheet-close" onclick="closeOverlay('listSheet')">×</button>
+    </div>
+    <div id="listContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   车辆油耗与费用 —— 纯前端单文件应用
+   ============================================================ */
+(function(){
+  'use strict';
+  const KEY='carlife_v3';
+
+  const EXPENSE_CATEGORIES=[
+    {main:'保养',subs:['常规保养','机油机滤','轮胎','刹车','电瓶','空调','年检']},
+    {main:'维修',subs:['故障维修','事故维修','钣金喷漆']},
+    {main:'停车费',subs:['停车费']},
+    {main:'过路费',subs:['高速过路','桥梁隧道']},
+    {main:'洗车',subs:['普通洗车','精洗美容','打蜡镀晶']},
+    {main:'保险',subs:['交强险','商业险','车船税']},
+    {main:'罚款',subs:['违章罚款']},
+    {main:'其他',subs:['其他']}
+  ];
+  const CAT_CSS={
+    '保养':'s-maint','维修':'s-repair','停车费':'s-park','过路费':'s-toll',
+    '洗车':'s-wash','保险':'s-insurance','罚款':'s-fine','其他':'s-other'
+  };
+
+  let state={vehicles:[],fuel:[],expenses:[],maint:[],webdav:{},cur:null};
+  let editing={vehicle:null,fuelId:null,expense:null};
+  let currentFilter='all';
+  let currentRange='6';
+  let ui={full:0,light:0,recorded:1,expCat:'保养'};
+
+  /* ---------- persistence ---------- */
+  function load(){
+    try{
+      const raw=localStorage.getItem(KEY);
+      if(raw){state=Object.assign(state,JSON.parse(raw));}
+    }catch(e){console.warn(e);}
+    if(!state.vehicles)state.vehicles=[];
+    if(!state.fuel)state.fuel=[];
+    if(!state.expenses)state.expenses=[];
+    if(!state.maint)state.maint=[];
+    if(!state.webdav)state.webdav={};
+
+    // 兼容迁移：旧 maint → expenses
+    if(state.maint && state.maint.length){
+      const exist=new Set(state.expenses.map(r=>r.id));
+      state.maint.forEach(m=>{
+        if(!exist.has(m.id)){
+          state.expenses.push({
+            id:m.id,vehicleId:m.vehicleId,date:m.date,odometer:m.odometer||0,
+            category:'保养',subcategory:m.type||'常规保养',
+            cost:m.cost,location:m.shop||'',note:m.note||''
+          });
+        }
+      });
+      state.maint=[];
+      save();
+    }
+
+    if(state.cur && !state.vehicles.some(v=>v.id===state.cur))state.cur=null;
+    if(!state.cur && state.vehicles.length)state.cur=state.vehicles[0].id;
+  }
+  function save(){localStorage.setItem(KEY,JSON.stringify(state));scheduleAutoSync();}
+
+  /* ---------- helpers ---------- */
+  const $=id=>document.getElementById(id);
+  const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  const fmt=(n,d=2)=>{if(n==null||isNaN(n))return '0';return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:d});};
+  const money=n=>'¥'+fmt(n,2);
+  const todayStr=()=>new Date().toISOString().slice(0,10);
+  function cv(){return state.vehicles.find(v=>v.id===state.cur);}
+  function recPaid(r){return (r.paid!=null && !isNaN(r.paid)) ? r.paid : (r.cost!=null?r.cost:0);}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function toast(msg){
+    const t=$('toast');t.textContent=msg;t.classList.add('show');
+    clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800);
+  }
+
+  /* ---------- consumption calc ---------- */
+  // full  : 加满法——里程差 / 「本次加油量」× 100（加满即本次加的量≈本段消耗）
+  // light : 亮灯法——本次里程 − 上次加油里程，除以「上次加油量」× 100（油灯亮代表上次加的油跑完了）
+  function fuelWithCons(vehId){
+    const list=state.fuel.filter(r=>r.vehicleId===vehId)
+      .sort((a,b)=> new Date(a.date)-new Date(b.date) || a.odometer-b.odometer);
+    let prevFull=null, prevPrev=null; // prevPrev = 上一条加油记录（亮灯法取「上次加油量」）
+    return list.map(r=>{
+      let cons=null;
+      const isLight = (r.light===true) || (r.method==='light');
+      const isFull = isLight ? false : (r.full===true);
+      if(isLight){
+        // 亮灯法：本地里程(本次里程−上次加油里程) ÷ 上次加油量
+        if(prevPrev && r.odometer>prevPrev.odometer && prevPrev.liters>0){
+          cons=prevPrev.liters/(r.odometer-prevPrev.odometer)*100;
+        }
+      }else if(isFull){
+        // 加满法：里程差 ÷ 本次加油量
+        if(prevFull && r.odometer>prevFull.odometer && r.liters>0){
+          cons=r.liters/(r.odometer-prevFull.odometer)*100;
+        }
+        prevFull=r;
+      }
+      prevPrev=r;
+      return Object.assign({},r,{consumption:cons});
+    });
+  }
+  function getRank(avg){
+    if(!avg)return {title:'暂无数据',stars:0};
+    if(avg<6)return {title:'油耗大师',stars:5};
+    if(avg<7)return {title:'精英老司机',stars:5};
+    if(avg<8)return {title:'经济实用',stars:4};
+    if(avg<10)return {title:'日常通勤',stars:3};
+    return {title:'油老虎',stars:2};
+  }
+
+  /* ---------- vehicle menu ---------- */
+  function renderVehMenu(){
+    const menu=$('vehMenu');menu.innerHTML='';
+    state.vehicles.forEach(v=>{
+      const b=document.createElement('button');
+      b.innerHTML=(esc(v.name)+(v.plate?' · '+esc(v.plate):''))+(v.id===state.cur?' ✓':'');
+      b.onclick=()=>{state.cur=v.id;save();closeVehMenu();renderAll();};
+      menu.appendChild(b);
+    });
+    const addBtn=document.createElement('button');
+    addBtn.className='add';addBtn.textContent='＋ 添加 / 切换车辆';
+    addBtn.onclick=()=>{closeVehMenu();openVehSheet();};
+    menu.appendChild(addBtn);
+    $('vehName').textContent=cv()?cv().name:'添加车辆';
+  }
+  function toggleVehMenu(){$('vehMenu').classList.toggle('open');}
+  function closeVehMenu(){$('vehMenu').classList.remove('open');}
+  document.addEventListener('click',e=>{
+    if(!e.target.closest('.veh-selector'))closeVehMenu();
+  });
+
+  /* ---------- view switching ---------- */
+  function switchView(v){
+    document.querySelectorAll('.view').forEach(s=>s.classList.remove('active'));
+    const el=$('view-'+v);
+    if(!el)return;
+    el.classList.add('active');
+    document.querySelectorAll('.bottom-nav .bn').forEach(t=>t.classList.toggle('active',t.dataset.v===v));
+    if(v==='home')renderHome();
+    if(v==='consumption')renderConsumption();
+    if(v==='expenses')renderExpenses();
+    if(v==='data')renderMine();
+  }
+
+  /* ========== VIEW: 首页 / 数据总览 ========== */
+  function renderHome(){
+    const v=cv();
+    const empty=$('homeEmpty'),box=$('homeContent');
+    if(!v){empty.style.display='block';box.style.display='none';return;}
+    empty.style.display='none';box.style.display='block';
+
+    $('homeVehName').textContent=v.name;
+    $('homeVehSub').textContent=[v.plate,'累计 '+state.fuel.filter(r=>r.vehicleId===v.id).length+' 次加油'].filter(Boolean).join(' · ');
+
+    const fuels=fuelWithCons(v.id).filter(r=>r.liters>0);
+    const expenses=state.expenses.filter(r=>r.vehicleId===v.id);
+    const measured=fuels.filter(r=>r.consumption!=null);
+    const avgCons=measured.length?measured.reduce((a,b)=>a+b.consumption,0)/measured.length:0;
+    const lastCons=measured.length?measured[measured.length-1].consumption:0;
+    const totalFuelCost=fuels.reduce((s,r)=>s+recPaid(r),0);
+    const totalDiscount=fuels.reduce((s,r)=>s+(+r.discount||0),0);
+    const totalExpCost=expenses.reduce((s,r)=>s+(+r.cost||0),0);
+    const odoMax=fuels.length?Math.max(...fuels.map(r=>r.odometer)):0;
+    const odoMin=fuels.length?Math.min(...fuels.map(r=>r.odometer)):0;
+    const dist=Math.max(0,odoMax-odoMin);
+    const now=new Date();const ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    const monthFuel=fuels.filter(r=>r.date.slice(0,7)===ym).reduce((s,r)=>s+recPaid(r),0);
+    const monthExp=expenses.filter(r=>r.date.slice(0,7)===ym).reduce((s,r)=>s+(+r.cost||0),0);
+
+    // hero
+    $('homeCons').textContent=lastCons?lastCons.toFixed(2):'--';
+    const rank=getRank(avgCons);
+    $('homeRank').textContent=rank.title;
+    const starsEl=$('homeStars');starsEl.innerHTML='';
+    for(let i=0;i<5;i++){
+      const s=document.createElement('span');s.className='star'+(i<rank.stars?'':' off');
+      s.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.5 2 7L12 16l-6.5 4.5 2-7L2 9h7z"/></svg>';
+      starsEl.appendChild(s);
+    }
+
+    // stats
+    $('homeStats').innerHTML=`
+      <div class="stat-cell"><div class="lbl">平均油耗</div><div class="val ${avgCons>8?'danger':'green'}">${avgCons?fmt(avgCons,2):'--'}</div><span class="unit">升/百公里</span></div>
+      <div class="stat-cell"><div class="lbl">累计里程</div><div class="val">${fmt(dist,0)}</div><span class="unit">公里</span></div>
+      <div class="stat-cell"><div class="lbl">累计油费</div><div class="val">${fmt(totalFuelCost,0)}</div><span class="unit">元</span></div>
+      <div class="stat-cell"><div class="lbl">累计费用</div><div class="val">${fmt(totalExpCost,0)}</div><span class="unit">元</span></div>
+      <div class="stat-cell"><div class="lbl">本月油费</div><div class="val green">${fmt(monthFuel,0)}</div><span class="unit">元</span></div>
+      <div class="stat-cell"><div class="lbl">本月费用</div><div class="val green">${fmt(monthExp,0)}</div><span class="unit">元</span></div>
+    `;
+
+    // recent combined
+    const combined=[
+      ...fuels.map(r=>({kind:'fuel',id:r.id,date:r.date,odometer:r.odometer,cost:recPaid(r),sub:r.liters+'L',tag:'加油',cls:'s-fuel'})),
+      ...expenses.map(r=>({kind:'expense',id:r.id,date:r.date,odometer:r.odometer,cost:r.cost,sub:r.subcategory,tag:r.category,cls:CAT_CSS[r.category]||'s-other'}))
+    ].sort((a,b)=>new Date(b.date)-new Date(a.date)||b.odometer-a.odometer).slice(0,6);
+    const rl=$('homeRecent');
+    if(!combined.length){rl.innerHTML='<div class="empty" style="padding:24px">暂无记录，点击底部 ＋ 添加</div>';return;}
+    rl.innerHTML=combined.map(r=>`<div class="item ${r.cls}" onclick="showRecordDetail('${r.kind}','${r.id}')">
+      <div class="item-stripe"></div>
+      <div class="item-body">
+        <div class="item-row">
+          <span class="item-date">${r.date.slice(5)}</span>
+          <span class="item-amount" style="color:${r.kind==='fuel'?'var(--brand-dark)':'var(--blue)'}">${money(r.cost)}</span>
+        </div>
+        <div class="item-meta">
+          <span class="item-cat">${r.tag}${r.sub?' · '+esc(r.sub):''}</span>
+          ${r.odometer?`<span>${fmt(r.odometer,0)} km</span>`:''}
+        </div>
+      </div>
+      <span class="item-arrow">›</span>
+    </div>`).join('');
+  }
+
+  /* ========== VIEW: 油耗 ========== */
+  function renderConsumption(){
+    const v=cv();
+    if(!v){$('consEmpty').style.display='block';$('consContent').style.display='none';return;}
+    $('consEmpty').style.display='none';$('consContent').style.display='block';
+
+    const fuels=fuelWithCons(v.id).filter(r=>r.liters>0);
+    const expenses=state.expenses.filter(r=>r.vehicleId===v.id);
+
+    const totalFuelCost=fuels.reduce((s,r)=>s+recPaid(r),0);
+    const totalDiscount=fuels.reduce((s,r)=>s+(+r.discount||0),0);
+    const totalLiters=fuels.reduce((s,r)=>s+(+r.liters||0),0);
+    const totalExpCost=expenses.reduce((s,r)=>s+(+r.cost||0),0);
+    const odoMax=fuels.length?Math.max(...fuels.map(r=>r.odometer)):0;
+    const odoMin=fuels.length?Math.min(...fuels.map(r=>r.odometer)):0;
+    const dist=Math.max(0,odoMax-odoMin);
+    const measured=fuels.filter(r=>r.consumption!=null);
+    const avgCons=measured.length?measured.reduce((a,b)=>a+b.consumption,0)/measured.length:0;
+    const avgDist=fuels.length?dist/fuels.length:0;
+    const avgCost=dist>0?(totalFuelCost/dist):0;
+    const avgExp=dist>0?((totalFuelCost+totalExpCost)/dist):0;
+
+    // hero
+    const lastCons=measured.length?measured[measured.length-1].consumption:0;
+    $('heroCons').textContent=lastCons?lastCons.toFixed(2):'--';
+    const rank=getRank(avgCons);
+    $('heroRank').textContent=rank.title;
+    const starsEl=$('heroStars');starsEl.innerHTML='';
+    for(let i=0;i<5;i++){
+      const s=document.createElement('span');s.className='star'+(i<rank.stars?'':' off');
+      s.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.5 2 7L12 16l-6.5 4.5 2-7L2 9h7z"/></svg>';
+      starsEl.appendChild(s);
+    }
+
+    // stats
+    $('statsGrid').innerHTML=`
+      <div class="stat-cell"><div class="lbl">平均油耗</div><div class="val ${avgCons>8?'danger':'green'}">${avgCons?fmt(avgCons,2):'--'}</div><span class="unit">升/百公里</span></div>
+      <div class="stat-cell"><div class="lbl">平均行程</div><div class="val">${fmt(avgDist,1)}</div><span class="unit">公里/次</span></div>
+      <div class="stat-cell"><div class="lbl">平均花费</div><div class="val">${fmt(avgExp,2)}</div><span class="unit">元/公里</span></div>
+      <div class="stat-cell"><div class="lbl">统计里程</div><div class="val">${fmt(dist,0)}</div><span class="unit">公里</span></div>
+      <div class="stat-cell"><div class="lbl">累计油费</div><div class="val">${fmt(totalFuelCost,0)}</div><span class="unit">元</span></div>
+      <div class="stat-cell"><div class="lbl">总计优惠</div><div class="val green">${fmt(totalDiscount,2)}</div><span class="unit">元</span></div>
+    `;
+
+    renderConsChart(measured,avgCons);
+
+    const recent=fuels.sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+    const rl=$('recentList');
+    if(!recent.length){rl.innerHTML='<div class="empty" style="padding:24px">暂无加油记录，点击下方 ＋ 添加</div>';return;}
+    rl.innerHTML=recent.map(r=>{
+      const cons=r.consumption;
+      const consCls=cons==null?'':((cons>8)?'cons-high':((cons<6)?'cons-low':''));
+      return `<div class="item s-fuel" onclick="showRecordDetail('fuel','${r.id}')">
+        <div class="item-stripe"></div>
+        <div class="item-body">
+          <div class="item-row">
+            <span class="item-date">${r.date.slice(5)}</span>
+            <span class="item-amount" style="color:var(--brand-dark)">${money(recPaid(r))}</span>
+          </div>
+          <div class="item-meta">
+            <span class="${consCls}">${cons?fmt(cons,2)+' 升/百公里':'未测算'}</span>
+            <span>${r.liters}L</span>
+            <span>${fmt(r.odometer,0)} km</span>
+          </div>
+        </div>
+        <span class="item-arrow">›</span>
+      </div>`;
+    }).join('');
+  }
+
+  function renderConsChart(measured,avg){
+    const wrap=$('consChart');
+    if(measured.length<1){wrap.innerHTML='<div class="empty" style="padding:20px">连续两次「已跳枪」或「油灯亮」后即可显示趋势</div>';return;}
+    const W=680,H=220,pl=40,pr=12,pt=14,pb=30;
+    const now=Date.now();
+    const rangeMs=currentRange==='all'?Infinity:(Number(currentRange)*30*24*60*60*1000);
+    let data=measured.filter(r=>{const t=new Date(r.date).getTime();return now-t<=rangeMs;});
+    if(!data.length)data=measured.slice(-12);
+    if(data.length<1){wrap.innerHTML='<div class="empty" style="padding:20px">暂无数据</div>';return;}
+    const vals=data.map(r=>r.consumption);
+    let mn=Math.min(...vals),mx=Math.max(...vals);
+    if(mn===mx){mn-=0.5;mx+=0.5;}
+    const pad=(mx-mn)*0.15;mn-=pad;mx+=pad;
+    const n=data.length;
+    const x=i=>pl+(W-pl-pr)*(n===1?0.5:i/(n-1));
+    const y=v=>pt+(H-pt-pb)*(1-(v-mn)/(mx-mn));
+    let path='',pts='';
+    data.forEach((r,i)=>{const px=x(i),py=y(r.consumption);path+=(i?'L':'M')+px.toFixed(1)+' '+py.toFixed(1)+' ';pts+=`<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="3" fill="#5cc85c"><title>${r.date} · ${fmt(r.consumption,2)} L/100km</title></circle>`;});
+    let avgLine='';
+    if(avg){const ay=y(avg);avgLine=`<line x1="${pl}" y1="${ay.toFixed(1)}" x2="${W-pr}" y2="${ay.toFixed(1)}" stroke="#b8b8b8" stroke-width="1.5" stroke-dasharray="4 4"/>`;}
+    let grid='';
+    for(let g=0;g<=3;g++){const gv=mn+(mx-mn)*g/3;const gy=y(gv);grid+=`<line x1="${pl}" y1="${gy.toFixed(1)}" x2="${W-pr}" y2="${gy.toFixed(1)}" stroke="#eef0f4"/>`;grid+=`<text x="${pl-6}" y="${(gy+4).toFixed(1)}" text-anchor="end" font-size="10" fill="#8a94a6">${fmt(gv,1)}</text>`;}
+    let xlab='';
+    const idxs=n<=4?[...Array(n).keys()]:[0,Math.floor((n-1)/2),n-1];
+    idxs.forEach(i=>{xlab+=`<text x="${x(i).toFixed(1)}" y="${H-10}" text-anchor="middle" font-size="10" fill="#8a94a6">${data[i].date.slice(5)}</text>`;});
+    wrap.innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${grid}${avgLine}<path d="${path}" fill="none" stroke="#5cc85c" stroke-width="2.2" stroke-linejoin="round"/>${pts}${xlab}</svg>`;
+  }
+  function setRange(r){
+    currentRange=r;
+    document.querySelectorAll('#rangeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.r===r));
+    renderConsumption();
+  }
+
+  /* ========== VIEW: 费用 ========== */
+  function renderExpenses(){
+    const v=cv();
+    if(!v){$('expEmpty').style.display='block';$('expContent').style.display='none';return;}
+    $('expEmpty').style.display='none';$('expContent').style.display='block';
+
+    const fuels=state.fuel.filter(r=>r.vehicleId===v.id);
+    const expenses=state.expenses.filter(r=>r.vehicleId===v.id);
+
+    // combined list (raw, for stats)
+    const combined=[
+      ...fuels.map(r=>({kind:'fuel',id:r.id,date:r.date,odometer:r.odometer,cost:recPaid(r),sub:r.liters+'L',tag:'加油',cls:'s-fuel'})),
+      ...expenses.map(r=>({kind:'expense',id:r.id,date:r.date,odometer:r.odometer,cost:r.cost,sub:r.subcategory,tag:r.category,cls:CAT_CSS[r.category]||'s-other'}))
+    ];
+
+    const filtered=currentFilter==='all'?combined:combined.filter(r=>{
+      if(currentFilter==='fuel')return r.kind==='fuel';
+      return r.kind==='expense' && r.tag===currentFilter;
+    });
+
+    const totalCost=combined.reduce((s,r)=>s+(+r.cost||0),0);
+    const totalFuel=combined.filter(r=>r.kind==='fuel').reduce((s,r)=>s+(+r.cost||0),0);
+    const totalExp=combined.filter(r=>r.kind==='expense').reduce((s,r)=>s+(+r.cost||0),0);
+    const measured=fuelWithCons(v.id).filter(r=>r.consumption!=null);
+    const avgCons=measured.length?measured.reduce((a,b)=>a+b.consumption,0)/measured.length:0;
+    const odoMax=fuels.length?Math.max(...fuels.map(r=>r.odometer)):0;
+    const odoMin=fuels.length?Math.min(...fuels.map(r=>r.odometer)):0;
+    const dist=Math.max(0,odoMax-odoMin);
+    const now=new Date();const ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    const monthFuel=combined.filter(r=>r.kind==='fuel'&&(r.date||'').slice(0,7)===ym).reduce((s,r)=>s+(+r.cost||0),0);
+    const monthExp=combined.filter(r=>r.kind==='expense'&&(r.date||'').slice(0,7)===ym).reduce((s,r)=>s+(+r.cost||0),0);
+
+    $('expStatsBar').innerHTML=`
+      <div class="stats-bar-cell"><div class="lbl">累计费用</div><div class="val">${fmt(totalExp,0)}</div><div class="unit">元</div></div>
+      <div class="stats-bar-cell"><div class="lbl">加油实付</div><div class="val">${fmt(totalFuel,0)}</div><div class="unit">元</div></div>
+      <div class="stats-bar-cell"><div class="lbl">本月费用</div><div class="val">${fmt(monthExp,0)}</div><div class="unit">元</div></div>
+      <div class="stats-bar-cell"><div class="lbl">本月油费</div><div class="val">${fmt(monthFuel,0)}</div><div class="unit">元</div></div>
+      <div class="stats-bar-cell"><div class="lbl">平均油耗</div><div class="val">${fmt(avgCons,2)}</div><div class="unit">升/百公里</div></div>
+      <div class="stats-bar-cell"><div class="lbl">累计行程</div><div class="val">${fmt(dist,0)}</div><div class="unit">公里</div></div>
+      <div class="stats-bar-cell"><div class="lbl">加油次数</div><div class="val">${fuels.length}</div><div class="unit">次</div></div>
+      <div class="stats-bar-cell"><div class="lbl">费用条数</div><div class="val">${expenses.length}</div><div class="unit">条</div></div>
+    `;
+
+    const sorted=filtered.sort((a,b)=>new Date(b.date)-new Date(a.date)||b.odometer-a.odometer);
+    const list=$('expList');
+    if(!sorted.length){list.innerHTML='<div class="empty">暂无记录</div>';return;}
+    list.innerHTML=sorted.map(r=>{
+      const consCls = (r.kind==='fuel') ? '' : '';
+      const consTag = (r.kind==='fuel') ? '' : '';
+      return `<div class="item ${r.cls}" onclick="showRecordDetail('${r.kind}','${r.id}')">
+        <div class="item-stripe"></div>
+        <div class="item-body">
+          <div class="item-row">
+            <span class="item-date">${r.date.slice(5)}</span>
+            <span class="item-amount" style="color:${r.kind==='fuel'?'var(--brand-dark)':'var(--blue)'}">${money(r.cost)}</span>
+          </div>
+          <div class="item-meta">
+            <span class="item-cat">${r.tag}${r.sub?' · '+esc(r.sub):''}</span>
+            ${r.odometer?`<span>${fmt(r.odometer,0)} km</span>`:''}
+          </div>
+        </div>
+        <span class="item-arrow">›</span>
+      </div>`;
+    }).join('');
+  }
+  function filterCat(c){
+    currentFilter=c;
+    document.querySelectorAll('#expChips .chip').forEach(c=>c.classList.toggle('active',c.dataset.cat===c));
+    renderExpenses();
+  }
+
+  /* ========== VIEW: 我的 ========== */
+  function renderMine(){
+    const box=$('vehListBox');
+    if(!state.vehicles.length){box.innerHTML='<div class="empty" style="padding:16px">还没有车辆</div>';}
+    else{
+      box.innerHTML=state.vehicles.map(v=>{
+        const fc=state.fuel.filter(r=>r.vehicleId===v.id).length;
+        const ec=state.expenses.filter(r=>r.vehicleId===v.id).length;
+        return `<div class="veh-item">
+          <div class="vi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"/><path d="M3 11h18v6a1 1 0 0 1-1 1h-1a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4a1 1 0 0 1-1-1z"/></svg></div>
+          <div class="vn">${esc(v.name)}<small>${v.plate?esc(v.plate):''} · ${fc}次加油 · ${ec}条费用</small></div>
+          <button class="btn btn-ghost btn-sm" onclick="editVeh('${v.id}')">编辑</button>
+        </div>`;
+      }).join('');
+    }
+    loadWdInputs();
+  }
+
+  /* ========== FAB action sheet ========== */
+  function openActionSheet(){
+    if(!cv()){toast('请先添加车辆');return;}
+    $('fabSheet').classList.add('open');
+  }
+  function openOverlay(id){$(id).classList.add('open');}
+  function closeOverlay(id){$(id).classList.remove('open');}
+
+  /* ========== ADD FUEL ========== */
+  function openAddFuel(id){
+    if(!cv()){toast('请先添加车辆');return;}
+    const v=cv();
+    editing.fuelId=null;
+    $('f_date').value=todayStr();
+    $('f_odo').value='';
+    $('f_price').value='';
+    $('f_liters').value='';
+    $('f_amount').value='';
+    $('f_real_price').value='';
+    $('f_discount').value='0';
+    $('f_paid').value='';
+    $('f_station').value='';
+    $('f_grade').value='92#汽油';
+    $('f_note').value='';
+    ui.full=0;ui.light=0;ui.recorded=1;
+    refreshToggleUi();
+
+    if(id){
+      // 编辑模式：加载原记录
+      const r=state.fuel.find(x=>x.id===id);if(!r){openOverlay('fuelSheet');return;}
+      editing.fuelId=id;
+      $('f_date').value=r.date||todayStr();
+      $('f_odo').value=r.odometer||'';
+      $('f_price').value=r.price||'';
+      $('f_liters').value=r.liters||'';
+      $('f_amount').value=r.cost||'';
+      $('f_real_price').value=r.realPrice||'';
+      $('f_discount').value=r.discount||0;
+      $('f_paid').value=r.paid||'';
+      $('f_station').value=r.station||'';
+      $('f_grade').value=r.grade||'92#汽油';
+      $('f_note').value=r.note||'';
+      ui.full=r.full?1:0;
+      ui.light=r.light?1:0;
+      ui.recorded=r.recorded===false?0:1;
+      refreshToggleUi();
+    }else{
+      const last=state.fuel.filter(r=>r.vehicleId===v.id).sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+      if(last){
+        $('f_odo').value=last.odometer||'';
+        if(last.station)$('f_station').value=last.station;
+        if(last.grade)$('f_grade').value=last.grade;
+        if(last.full!=null){ui.full=last.full?1:0;}
+        if(last.light!=null){ui.light=last.light?1:0;}
+        refreshToggleUi();
+      }
+    }
+    $('fuelSheetTitle').textContent=editing.fuelId?'编辑加油记录':'添加加油记录';
+    openOverlay('fuelSheet');
+  }
+  function setFull(v){ui.full=v;refreshToggleUi();}
+  function setLight(v){ui.light=v;refreshToggleUi();}
+  function setRecorded(v){ui.recorded=v;refreshToggleUi();}
+  function refreshToggleUi(){
+    $('f_full_yes').classList.toggle('on',ui.full===1);
+    $('f_full_no').classList.toggle('on',ui.full===0);
+    $('f_light_yes').classList.toggle('on',ui.light===1);
+    $('f_light_no').classList.toggle('on',ui.light===0);
+    $('f_record_yes').classList.toggle('on',ui.recorded===1);
+    $('f_record_no').classList.toggle('on',ui.recorded===0);
+  }
+  function saveFuel(){
+    const v=cv();if(!v){toast('请先添加车辆');return;}
+    const date=$('f_date').value||todayStr();
+    const odo=parseFloat($('f_odo').value);
+    const liters=parseFloat($('f_liters').value);
+    const price=parseFloat($('f_price').value);
+    const amount=parseFloat($('f_amount').value);
+    const realPrice=parseFloat($('f_real_price').value);
+    const discount=parseFloat($('f_discount').value)||0;
+    let paid=parseFloat($('f_paid').value);
+    if(isNaN(paid))paid=amount;  // 未填实付默认按机显金额（无优惠）
+    const station=$('f_station').value.trim();
+    const grade=$('f_grade').value;
+    const note=$('f_note').value.trim();
+    if(!odo||odo<=0){toast('请填写有效里程');return;}
+    if(!liters||liters<=0){toast('请填写加油量');return;}
+    if(isNaN(amount)||amount<=0){toast('请填写机显金额');return;}
+    const full=ui.full===1;
+    const light=ui.light===1;
+    const recorded=ui.recorded===1;
+    const storedPrice=isNaN(price)||price<=0?(amount/liters):price;
+    const record={
+      id:editing.fuelId||uid(),vehicleId:v.id,date,odometer:odo,liters,
+      cost:amount,discount,paid,price:storedPrice,
+      realPrice:isNaN(realPrice)||realPrice<=0?(paid/liters):realPrice,
+      station,grade,note,full,light,
+      recorded,method:light?'light':(full?'full':undefined),
+      lightOdo:light?odo:null
+    };
+    if(editing.fuelId){
+      const idx=state.fuel.findIndex(r=>r.id===editing.fuelId);
+      if(idx>=0)state.fuel[idx]=record;
+      const wasEditing=true;
+      editing.fuelId=null;
+      save();
+      closeOverlay('fuelSheet');
+      renderAll();
+      toast('已保存加油记录');
+      return;
+    }
+    state.fuel.push(record);
+    save();
+    closeOverlay('fuelSheet');
+    renderAll();
+    toast('已保存加油记录');
+  }
+
+  /* ========== ADD EXPENSE ========== */
+  function setExpCat(c){
+    ui.expCat=c;
+    document.querySelectorAll('#e_catSeg button').forEach(b=>b.classList.toggle('on',b.dataset.cat===c));
+    const def=EXPENSE_CATEGORIES.find(x=>x.main===c);
+    $('e_sub').innerHTML=(def?def.subs:['其他']).map(s=>`<option>${s}</option>`).join('');
+  }
+  function openAddExpense(id){
+    if(!cv()){toast('请先添加车辆');return;}
+    if(id){
+      const r=state.expenses.find(x=>x.id===id);
+      if(r){
+        $('e_date').value=r.date;
+        $('e_cost').value=r.cost;
+        $('e_odo').value=r.odometer||'';
+        $('e_location').value=r.location||'';
+        $('e_note').value=r.note||'';
+        setExpCat(r.category);
+        const def=EXPENSE_CATEGORIES.find(c=>c.main===r.category);
+        if(def)$('e_sub').innerHTML=def.subs.map(s=>`<option ${s===r.subcategory?'selected':''}>${s}</option>`).join('');
+        editing.expense=id;
+        $('expenseSheetTitle').textContent='编辑费用';
+        openOverlay('expenseSheet');return;
+      }
+    }
+    editing.expense=null;
+    $('e_date').value=todayStr();
+    $('e_cost').value='';
+    $('e_odo').value='';
+    $('e_location').value='';
+    $('e_note').value='';
+    setExpCat('保养');
+    $('expenseSheetTitle').textContent='添加费用';
+    openOverlay('expenseSheet');
+  }
+  function saveExpense(){
+    const v=cv();if(!v){toast('请先添加车辆');return;}
+    const date=$('e_date').value||todayStr();
+    const category=ui.expCat;
+    const subcategory=$('e_sub').value;
+    const cost=parseFloat($('e_cost').value);
+    const odometer=parseFloat($('e_odo').value)||0;
+    const location=$('e_location').value.trim();
+    const note=$('e_note').value.trim();
+    if(!cost||cost<=0){toast('请填写费用金额');return;}
+    if(editing.expense){
+      const r=state.expenses.find(x=>x.id===editing.expense);
+      if(r)Object.assign(r,{date,category,subcategory,cost,odometer,location,note});
+      editing.expense=null;
+    }else{
+      state.expenses.push({
+        id:uid(),vehicleId:v.id,date,category,subcategory,cost,odometer,location,note
+      });
+    }
+    save();
+    closeOverlay('expenseSheet');
+    renderExpenses();
+    renderConsumption();
+    toast('已保存费用');
+  }
+
+  /* ========== VEHICLE ========== */
+  function openVehSheet(){
+    editing.vehicle=null;
+    $('vehSheetTitle').textContent='添加车辆';
+    $('v_name').value='';$('v_plate').value='';$('v_cap').value='';$('v_note').value='';
+    openOverlay('vehSheet');
+  }
+  function editVeh(id){
+    const v=state.vehicles.find(x=>x.id===id);if(!v)return;
+    editing.vehicle=id;
+    $('vehSheetTitle').textContent='编辑车辆';
+    $('v_name').value=v.name;
+    $('v_plate').value=v.plate||'';
+    $('v_cap').value=v.capacity||'';
+    $('v_note').value=v.note||'';
+    openOverlay('vehSheet');
+  }
+  function saveVehicle(){
+    const name=$('v_name').value.trim();
+    if(!name){toast('请填写车辆名称');return;}
+    const plate=$('v_plate').value.trim();
+    const capacity=parseFloat($('v_cap').value)||null;
+    const note=$('v_note').value.trim();
+    if(editing.vehicle){
+      const v=state.vehicles.find(x=>x.id===editing.vehicle);
+      Object.assign(v,{name,plate,capacity,note});
+    }else{
+      const id=uid();
+      state.vehicles.push({id,name,plate,capacity,note});
+      if(!state.cur)state.cur=id;
+    }
+    save();
+    closeOverlay('vehSheet');
+    renderAll();
+    toast('车辆已保存');
+  }
+  function delVehicle(id){
+    id=id||state.cur;if(!id)return;
+    const v=state.vehicles.find(x=>x.id===id);if(!v)return;
+    const fc=state.fuel.filter(r=>r.vehicleId===id).length;
+    const ec=state.expenses.filter(r=>r.vehicleId===id).length;
+    if(!confirm(`删除车辆「${v.name}」？将同时删除 ${fc} 条加油、${ec} 条费用记录，不可恢复。`))return;
+    state.vehicles=state.vehicles.filter(x=>x.id!==id);
+    state.fuel=state.fuel.filter(r=>r.vehicleId!==id);
+    state.expenses=state.expenses.filter(r=>r.vehicleId!==id);
+    if(state.cur===id)state.cur=state.vehicles[0]?state.vehicles[0].id:null;
+    save();
+    renderAll();
+    toast('车辆已删除');
+  }
+  function clearAll(){
+    const v=cv();if(!v){toast('请先选择车辆');return;}
+    if(!confirm(`清空「${v.name}」的全部记录？此操作不可恢复。`))return;
+    state.fuel=state.fuel.filter(r=>r.vehicleId!==v.id);
+    state.expenses=state.expenses.filter(r=>r.vehicleId!==v.id);
+    save();renderAll();toast('已清空');
+  }
+
+  /* ========== DETAILS MODAL ========== */
+  // 详情按钮与所在页面绑定：油耗页→油耗列表，费用页→费用列表
+  function getActiveView(){
+    const a=document.querySelector('.view.active');
+    return a?a.id.replace('view-',''):'home';
+  }
+  function openDetails(){
+    const v=cv();if(!v){toast('请先添加车辆');return;}
+    if(getActiveView()==='expenses'){
+      renderExpenseListView(v.id);
+    }else{
+      renderFuelListView(v.id);
+    }
+    openOverlay('listSheet');
+  }
+
+  /* ========== 油耗列表（详情模式） ========== */
+  let _listYear=null;  // null=全部年；否则为字符串 '2026'
+  function renderFuelListView(vehId){
+    const v=state.vehicles.find(x=>x.id===vehId)||cv();if(!v){$('listContent').innerHTML='<div class="empty">请先添加车辆</div>';return;}
+    $('listTitle').textContent='油耗列表';
+    const fuels=fuelWithCons(v.id).filter(r=>r.liters>0);
+    // 提取可选年份（从车辆加油数据 + 当前年）
+    const years=new Set();
+    fuels.forEach(r=>{const y=(r.date||'').slice(0,4);if(y)years.add(y);});
+    const cur=new Date().getFullYear().toString();
+    years.add(cur);
+    const sortedYears=[...years].sort((a,b)=>b.localeCompare(a));
+    if(_listYear==null)_listYear=cur;
+    // 年份筛选
+    const filtered=_listYear==='all'?fuels:fuels.filter(r=>(r.date||'').slice(0,4)===_listYear);
+    filtered.sort((a,b)=>new Date(b.date)-new Date(a.date)||b.odometer-a.odometer);
+
+    // 顶部统计
+    const totalFuel=fuels.reduce((s,r)=>s+recPaid(r),0);
+    const totalLiters=fuels.reduce((s,r)=>s+(+r.liters||0),0);
+    const measured=fuels.filter(r=>r.consumption!=null);
+    const avgCons=measured.length?measured.reduce((a,b)=>a+b.consumption,0)/measured.length:0;
+    const odoMax=fuels.length?Math.max(...fuels.map(r=>r.odometer)):0;
+    const odoMin=fuels.length?Math.min(...fuels.map(r=>r.odometer)):0;
+    const dist=Math.max(0,odoMax-odoMin);
+
+    let html=`<div style="color:var(--muted);font-size:13px;margin-bottom:8px">${esc(v.name)} · ${_listYear==='all'?'全部年份':_listYear+' 年'} · ${filtered.length} 条加油</div>`;
+    // 顶部统计
+    html+=`<div class="list-stats">
+      <div class="list-stat"><div class="lbl">累计花费</div><div class="val green">${fmt(totalFuel,0)}</div><div class="unit">元</div></div>
+      <div class="list-stat"><div class="lbl">平均油耗</div><div class="val ${avgCons>8?'high':''}">${avgCons?fmt(avgCons,2):'--'}</div><div class="unit">升/百公里</div></div>
+      <div class="list-stat"><div class="lbl">累计行程</div><div class="val">${fmt(dist,0)}</div><div class="unit">公里</div></div>
+      <div class="list-stat"><div class="lbl">加油次数</div><div class="val">${fuels.length}</div><div class="unit">次</div></div>
+      <div class="list-stat"><div class="lbl">加油总量</div><div class="val">${fmt(totalLiters,1)}</div><div class="unit">升</div></div>
+    </div>`;
+
+    // 年份切换行 + 添加按钮
+    html+=`<div class="list-toolbar">
+      <label class="year-pill">
+        <select onchange="pickYear(this.value)">
+          <option value="all" ${_listYear==='all'?'selected':''}>全部年份</option>
+          ${sortedYears.map(y=>`<option value="${y}" ${_listYear===y?'selected':''}>${y} 年</option>`).join('')}
+        </select>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </label>
+      <button class="btn btn-primary btn-sm" style="width:auto" onclick="closeOverlay('listSheet');openAddFuel()">+ 添加加油</button>
+    </div>`;
+
+    // 列表
+    if(!filtered.length){
+      html+=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 22V4h11v18"/><path d="M16 9l3 1.5V18a2 2 0 0 0 4 0V9l-3 1.5"/></svg><div>该年份暂无加油记录</div></div>`;
+    }else{
+      html+=`<div class="fuel-list">${filtered.map(r=>{
+        const c=r.consumption;
+        const cls=c==null?'':((c>8)?'high':((c<6)?'low':''));
+        const tag=r.full?'full':(r.light?'light':'');
+        return `<div class="fuel-row ${tag}" onclick="closeOverlay('listSheet');openAddFuel('${r.id}')">
+          <div class="fr-date">${(r.date||'').slice(5)}</div>
+          <div class="fr-cons ${cls}">
+            <span class="num">${c!=null?fmt(c,2):'--'}</span><span class="u">升/百公里</span>
+          </div>
+          <div class="fr-odo">${fmt(r.odometer,0)} 公里</div>
+          <div class="fr-arrow">›</div>
+        </div>`;
+      }).join('')}</div>`;
+    }
+    $('listContent').innerHTML=html;
+  }
+  function pickYear(y){
+    _listYear=y;
+    renderFuelListView(cv().id);
+  }
+
+  /* ========== 费用列表（详情模式） ========== */
+  let _listExpYear=null;
+  function renderExpenseListView(vehId){
+    const v=state.vehicles.find(x=>x.id===vehId)||cv();if(!v){$('listContent').innerHTML='<div class="empty">请先添加车辆</div>';return;}
+    $('listTitle').textContent='费用列表';
+    const exps=state.expenses.filter(r=>r.vehicleId===vehId);
+    const years=new Set();
+    exps.forEach(r=>{const y=(r.date||'').slice(0,4);if(y)years.add(y);});
+    const cur=new Date().getFullYear().toString();
+    years.add(cur);
+    const sortedYears=[...years].sort((a,b)=>b.localeCompare(a));
+    if(_listExpYear==null)_listExpYear=cur;
+    const filtered=_listExpYear==='all'?exps:exps.filter(r=>(r.date||'').slice(0,4)===_listExpYear);
+    filtered.sort((a,b)=>new Date(b.date)-new Date(a.date)||b.odometer-a.odometer);
+
+    const total=exps.reduce((s,r)=>s+(+r.cost||0),0);
+    const avg=exps.length?total/exps.length:0;
+    const max=exps.length?Math.max(...exps.map(r=>+r.cost||0)):0;
+
+    let html=`<div style="color:var(--muted);font-size:13px;margin-bottom:8px">${esc(v.name)} · ${_listExpYear==='all'?'全部年份':_listExpYear+' 年'} · ${filtered.length} 条费用</div>`;
+    html+=`<div class="list-stats">
+      <div class="list-stat"><div class="lbl">累计费用</div><div class="val blue" style="color:var(--blue)">${fmt(total,0)}</div><div class="unit">元</div></div>
+      <div class="list-stat"><div class="lbl">记录笔数</div><div class="val">${exps.length}</div><div class="unit">笔</div></div>
+      <div class="list-stat"><div class="lbl">平均单笔</div><div class="val">${fmt(avg,0)}</div><div class="unit">元</div></div>
+      <div class="list-stat"><div class="lbl">最大单笔</div><div class="val">${fmt(max,0)}</div><div class="unit">元</div></div>
+    </div>`;
+
+    html+=`<div class="list-toolbar">
+      <label class="year-pill">
+        <select onchange="pickExpYear(this.value)">
+          <option value="all" ${_listExpYear==='all'?'selected':''}>全部年份</option>
+          ${sortedYears.map(y=>`<option value="${y}" ${_listExpYear===y?'selected':''}>${y} 年</option>`).join('')}
+        </select>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </label>
+      <button class="btn btn-primary btn-sm" style="width:auto" onclick="closeOverlay('listSheet');openAddExpense()">+ 添加费用</button>
+    </div>`;
+
+    if(!filtered.length){
+      html+=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg><div>该年份暂无费用记录</div></div>`;
+    }else{
+      html+=`<div class="fuel-list">${filtered.map(r=>{
+        const cls=(+r.cost||0)>2000?'high':'';
+        return `<div class="fuel-row ${cls}" onclick="closeOverlay('listSheet');openAddExpense('${r.id}')">
+          <div class="fr-date">${(r.date||'').slice(5)}</div>
+          <div class="fr-cons">${esc(r.category)}${r.subcategory?' · '+esc(r.subcategory):''}</div>
+          <div class="fr-odo amt">¥${fmt(r.cost,2)}</div>
+          <div class="fr-arrow">›</div>
+        </div>`;
+      }).join('')}</div>`;
+    }
+    $('listContent').innerHTML=html;
+  }
+  function pickExpYear(y){
+    _listExpYear=y;
+    renderExpenseListView(cv().id);
+  }
+
+  /* ========== RECORD DETAIL ========== */
+  function showRecordDetail(kind,id){
+    const r=kind==='fuel'?state.fuel.find(x=>x.id===id):state.expenses.find(x=>x.id===id);
+    if(!r)return;
+    let html='';
+    if(kind==='fuel'){
+      html=`<div class="card-title" style="margin-bottom:14px">加油详情</div>
+        <div class="detail-row"><span class="k">📅 日期</span><span class="v">${r.date}</span></div>
+        <div class="detail-row"><span class="k">⛽ 加油量</span><span class="v">${r.liters} L</span></div>
+        <div class="detail-row"><span class="k">💰 机显单价</span><span class="v">¥${(+r.price||0).toFixed(2)}/L</span></div>
+        <div class="detail-row"><span class="k">💵 机显金额</span><span class="v">¥${fmt(r.cost,2)}</span></div>
+        ${(+r.discount>0)?`<div class="detail-row"><span class="k">🎁 优惠金额</span><span class="v">¥${fmt(r.discount,2)}</span></div>`:''}
+        <div class="detail-row"><span class="k">💳 实付金额</span><span class="v" style="color:var(--brand-dark)">¥${fmt(recPaid(r),2)}</span></div>
+        <div class="detail-row"><span class="k">🚗 当前里程</span><span class="v">${fmt(r.odometer,0)} km</span></div>
+        ${r.full?'<div class="detail-row"><span class="k">⛽ 加满跳枪</span><span class="v" style="color:var(--brand-dark)">是</span></div>':''}
+        ${r.light?'<div class="detail-row"><span class="k">💡 油灯亮</span><span class="v" style="color:var(--brand-dark)">是</span></div>':''}
+        ${r.consumption!=null?`<div class="detail-row"><span class="k">📊 测算油耗</span><span class="v" style="color:${r.consumption>8?'var(--danger)':'var(--brand-dark)'}">${fmt(r.consumption,2)} 升/百公里</span></div>`:''}
+        ${r.station?`<div class="detail-row"><span class="k">🏪 加油站</span><span class="v">${esc(r.station)}</span></div>`:''}
+        ${r.grade?`<div class="detail-row"><span class="k">⛽ 燃油标号</span><span class="v">${esc(r.grade)}</span></div>`:''}
+        ${r.note?`<div class="detail-row"><span class="k">📝 备注</span><span class="v">${esc(r.note)}</span></div>`:''}`;
+    }else{
+      html=`<div class="card-title" style="margin-bottom:14px">费用详情</div>
+        <div class="detail-row"><span class="k">📅 日期</span><span class="v">${r.date}</span></div>
+        <div class="detail-row"><span class="k">📂 分类</span><span class="v">${r.category}${r.subcategory?' · '+esc(r.subcategory):''}</span></div>
+        <div class="detail-row"><span class="k">💰 金额</span><span class="v" style="color:var(--blue)">¥${fmt(r.cost,2)}</span></div>
+        ${r.odometer?`<div class="detail-row"><span class="k">🚗 里程</span><span class="v">${fmt(r.odometer,0)} km</span></div>`:''}
+        ${r.location?`<div class="detail-row"><span class="k">📍 地点</span><span class="v">${esc(r.location)}</span></div>`:''}
+        ${r.note?`<div class="detail-row"><span class="k">📝 备注</span><span class="v">${esc(r.note)}</span></div>`:''}`;
+    }
+    html+=`<hr class="sep"><button class="btn btn-danger" style="width:100%" onclick="deleteRecord('${kind}','${r.id}')">删除该记录</button>`;
+    $('detailContent').innerHTML=html;
+    openOverlay('detailSheet');
+  }
+  function deleteRecord(kind,id){
+    if(!confirm('确定删除？'))return;
+    if(kind==='fuel')state.fuel=state.fuel.filter(r=>r.id!==id);
+    else state.expenses=state.expenses.filter(r=>r.id!==id);
+    save();closeOverlay('detailSheet');renderAll();toast('已删除');
+  }
+
+  /* ========== WebDAV ========== */
+  function loadWdInputs(){
+    const w=state.webdav||{};
+    $('wd_url').value=w.url||'';
+    $('wd_user').value=w.user||'';
+    $('wd_pass').value=w.pass||'';
+    $('wd_path').value=w.path||'/carlife/backup.json';
+    $('wd_auto').checked=!!w.auto;
+  }
+  function saveWdConfig(){
+    state.webdav={
+      url:$('wd_url').value.trim(),
+      user:$('wd_user').value.trim(),
+      pass:$('wd_pass').value,
+      path:$('wd_path').value.trim()||'/carlife/backup.json',
+      auto:$('wd_auto').checked
+    };
+    save();
+  }
+  function wdFullUrl(){
+    const base=(state.webdav.url||'').replace(/\/+$/,'');
+    let p=state.webdav.path||'/carlife/backup.json';
+    if(!p.startsWith('/'))p='/'+p;
+    return base+p;
+  }
+  function wdAuth(){
+    const u=state.webdav.user||'',p=state.webdav.pass||'';
+    return 'Basic '+btoa(unescape(encodeURIComponent(u+':'+p)));
+  }
+  async function syncToWebDAV(){
+    if(!state.webdav||!state.webdav.url){toast('请先填写 WebDAV 配置');return;}
+    saveWdConfig();
+    const url=wdFullUrl();const st=$('wd_status');st.textContent='上传中…';
+    try{
+      const dir=url.slice(0,url.lastIndexOf('/'));
+      try{await fetch(dir,{method:'MKCOL',headers:{Authorization:wdAuth()}});}catch(e){}
+      const res=await fetch(url,{
+        method:'PUT',
+        headers:{Authorization:wdAuth(),'Content-Type':'application/json'},
+        body:JSON.stringify(state)
+      });
+      if(!res.ok)throw new Error('HTTP '+res.status);
+      st.textContent='✓ 上传成功 · '+new Date().toLocaleString('zh-CN');
+      toast('已上传到 WebDAV');
+    }catch(e){st.textContent='✗ 上传失败：'+e.message;toast('上传失败');}
+  }
+  async function syncFromWebDAV(){
+    if(!state.webdav||!state.webdav.url){toast('请先填写 WebDAV 配置');return;}
+    saveWdConfig();
+    const url=wdFullUrl();const st=$('wd_status');st.textContent='下载中…';
+    try{
+      const res=await fetch(url,{method:'GET',headers:{Authorization:wdAuth()}});
+      if(!res.ok)throw new Error('HTTP '+res.status);
+      const data=await res.json();
+      mergeData(data);
+      st.textContent='✓ 下载成功 · '+new Date().toLocaleString('zh-CN');
+      toast('已从 WebDAV 恢复');
+    }catch(e){st.textContent='✗ 下载失败：'+e.message;toast('下载失败');}
+  }
+
+  /* 保存后自动同步：每次生成一个带时间戳的版本文件，并仅保留最近 5 个 */
+  let _autoTimer=null;
+  function scheduleAutoSync(){
+    if(!state.webdav||!state.webdav.auto||!state.webdav.url)return;
+    if(_autoTimer)clearTimeout(_autoTimer);
+    _autoTimer=setTimeout(()=>{_autoTimer=null;autoSyncWebDAV();},700);
+  }
+  // 由配置路径推导 目录 与 版本文件名 前缀，例如 /carlife/backup.json -> 目录 /carlife, 前缀 backup
+  function wdVersionParts(){
+    const p=state.webdav.path||'/carlife/backup.json';
+    const dir=p.slice(0,p.lastIndexOf('/'))||'/';
+    const name=p.slice(p.lastIndexOf('/')+1)||'backup.json';
+    const dot=name.lastIndexOf('.');
+    const base=dot>0?name.slice(0,dot):name;
+    return {dir,base};
+  }
+  async function autoSyncWebDAV(){
+    if(!state.webdav||!state.webdav.url)return;
+    const base=(state.webdav.url||'').replace(/\/+$/,'');
+    const {dir,base:pre}=wdVersionParts();
+    const stamp=tsCompact();
+    const verName=`${pre}_${stamp}.json`;
+    const dirUrl=base+dir;
+    const verUrl=base+dir+'/'+verName;
+    try{
+      try{await fetch(dirUrl,{method:'MKCOL',headers:{Authorization:wdAuth()}});}catch(e){}
+      const res=await fetch(verUrl,{
+        method:'PUT',
+        headers:{Authorization:wdAuth(),'Content-Type':'application/json'},
+        body:JSON.stringify(state)
+      });
+      if(!res.ok)throw new Error('HTTP '+res.status);
+      const st=$('wd_status');if(st)st.textContent='✓ 自动同步 · '+new Date().toLocaleString('zh-CN');
+      await pruneWebDAV(dirUrl,pre);
+      toast('已自动同步到 WebDAV');
+    }catch(e){
+      const st=$('wd_status');if(st)st.textContent='✗ 自动同步失败：'+e.message;
+    }
+  }
+  // 列出目录内本前缀的版本文件，仅保留最近 keep 个，删除其余
+  async function pruneWebDAV(dirUrl,pre){
+    const keep=5;
+    let hrefs=[];
+    try{
+      const r=await fetch(dirUrl,{method:'PROPFIND',headers:{Authorization:wdAuth(),Depth:'1'},
+        body:'<?xml version="1.0"?><propfind xmlns="DAV:"><prop><href/></prop></propfind>'});
+      if(!r.ok)return; // 服务器不支持列目录则跳过清理（不影响已上传的版本）
+      const xml=await r.text();
+      const doc=new DOMParser().parseFromString(xml,'application/xml');
+      [...doc.getElementsByTagName('*')].forEach(h=>{ if(h.localName==='href') hrefs.push(h.textContent.trim()); });
+    }catch(e){return;}
+    const pat=new RegExp('/'+pre.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'_\\d{8}_\\d{6}\\.json$');
+    const vers=hrefs.filter(u=>pat.test(u)).sort();
+    if(vers.length<=keep)return;
+    const toDelete=vers.slice(0,vers.length-keep);
+    await Promise.all(toDelete.map(u=>
+      fetch(u,{method:'DELETE',headers:{Authorization:wdAuth()}}).catch(()=>{})
+    ));
+  }
+  function tsCompact(){
+    const d=new Date(),p=n=>String(n).padStart(2,'0');
+    return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
+  }
+
+  /* ========== Data merge / export / import ========== */
+  function mergeData(data){
+    if(!data||!data.vehicles)throw new Error('格式错误');
+    const existV=new Set(state.vehicles.map(v=>v.id));
+    (data.vehicles||[]).forEach(v=>{if(!existV.has(v.id))state.vehicles.push(v);});
+    const existF=new Set(state.fuel.map(r=>r.id));
+    (data.fuel||[]).forEach(r=>{if(!existF.has(r.id))state.fuel.push(r);});
+    const existE=new Set(state.expenses.map(r=>r.id));
+    (data.expenses||[]).forEach(r=>{if(!existE.has(r.id))state.expenses.push(r);});
+    // 兼容旧数据中的 maint
+    if(data.maint && data.maint.length){
+      const existM=new Set(state.expenses.map(r=>r.id));
+      data.maint.forEach(m=>{
+        if(!existM.has(m.id)){
+          state.expenses.push({
+            id:m.id,vehicleId:m.vehicleId,date:m.date,odometer:m.odometer||0,
+            category:'保养',subcategory:m.type||'常规保养',
+            cost:m.cost,location:m.shop||'',note:m.note||''
+          });
+        }
+      });
+    }
+    if(!state.cur&&state.vehicles.length)state.cur=state.vehicles[0].id;
+    save();renderAll();
+  }
+  function exportData(){
+    const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='车辆记录_'+todayStr()+'.json';
+    a.click();URL.revokeObjectURL(a.href);
+    toast('已导出 JSON');
+  }
+  function importData(input){
+    const file=input.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{const data=JSON.parse(reader.result);mergeData(data);toast('导入完成（已合并）');}
+      catch(e){toast('导入失败：文件格式无效');}
+      input.value='';
+    };
+    reader.readAsText(file);
+  }
+
+  /* ========== auto compute for fuel (双向任意两推第三) ========== */
+  function bindFuelAuto(){
+    const lt=$('f_liters'),pp=$('f_price'),am=$('f_amount');
+    const rp=$('f_real_price'),dc=$('f_discount'),pd=$('f_paid');
+    const num=el=>{const v=parseFloat(el.value);return isNaN(v)?null:v;};
+    const set2=(el,v)=>{if(v!=null&&isFinite(v))el.value=Number(v.toFixed(2));};
+    // 第一行：单价 × 升数 = 机显金额。任意两已知，推第三个
+    function syncRow1(src){
+      const P=num(pp),L=num(lt),A=num(am);
+      if(src==='pp'){
+        if(L!=null) set2(am,P*L);
+        else if(A!=null&&P>0) set2(lt,A/P);
+      }else if(src==='lt'){
+        if(P!=null) set2(am,P*L);
+        else if(A!=null&&L>0) set2(pp,A/L);
+      }else if(src==='am'){
+        if(P!=null&&P>0) set2(lt,A/P);
+        else if(L!=null&&L>0) set2(pp,A/L);
+      }
+    }
+    // 第二行：实付单价 × 升数 = 实付金额；机显金额 - 优惠金额 = 实付金额。任一已知 + (升数, 机显) 推另两个
+    function syncRow2(src){
+      const RP=num(rp),D=num(dc),P=num(pd);
+      const L=num(lt),A=num(am);
+      if(src==='rp'){
+        if(L!=null&&L>0) set2(pd,RP*L);
+        const newP=num(pd);
+        if(A!=null&&newP!=null) set2(dc,A-newP);
+      }else if(src==='dc'){
+        if(A!=null&&D!=null) set2(pd,A-D);
+        const newP=num(pd);
+        if(L!=null&&L>0&&newP!=null) set2(rp,newP/L);
+      }else if(src==='pd'){
+        if(A!=null&&P!=null) set2(dc,A-P);
+        if(L!=null&&L>0&&P!=null) set2(rp,P/L);
+      }
+    }
+    pp.addEventListener('input',()=>syncRow1('pp'));
+    lt.addEventListener('input',()=>syncRow1('lt'));
+    am.addEventListener('input',()=>syncRow1('am'));
+    rp.addEventListener('input',()=>syncRow2('rp'));
+    dc.addEventListener('input',()=>syncRow2('dc'));
+    pd.addEventListener('input',()=>syncRow2('pd'));
+  }
+  function setupWd(){
+    ['wd_url','wd_user','wd_pass','wd_path'].forEach(id=>{
+      const el=$(id);if(el)el.addEventListener('input',saveWdConfig);
+    });
+    const auto=$('wd_auto');if(auto)auto.addEventListener('change',saveWdConfig);
+  }
+
+  function renderAll(){
+    renderVehMenu();
+    const active=document.querySelector('.view.active');
+    const v=active?active.id.replace('view-',''):'home';
+    if(v==='home')renderHome();
+    if(v==='consumption')renderConsumption();
+    if(v==='expenses')renderExpenses();
+    if(v==='data')renderMine();
+  }
+
+  /* ========== public API ========== */
+  window.switchView=switchView;
+  window.toggleVehMenu=toggleVehMenu;
+  window.closeVehMenu=closeVehMenu;
+  window.openOverlay=openOverlay;
+  window.closeOverlay=closeOverlay;
+  window.openActionSheet=openActionSheet;
+  window.openAddFuel=openAddFuel;
+  window.openAddExpense=openAddExpense;
+  window.setFull=setFull;
+  window.setLight=setLight;
+  window.setRecorded=setRecorded;
+  window.setExpCat=setExpCat;
+  window.setRange=setRange;
+  window.filterCat=filterCat;
+  window.saveFuel=saveFuel;
+  window.saveExpense=saveExpense;
+  window.openVehSheet=openVehSheet;
+  window.editVeh=editVeh;
+  window.saveVehicle=saveVehicle;
+  window.delVehicle=delVehicle;
+  window.clearAll=clearAll;
+  window.openDetails=openDetails;
+  window.showRecordDetail=showRecordDetail;
+  window.deleteRecord=deleteRecord;
+  window.pickYear=pickYear;
+  window.renderExpenseListView=renderExpenseListView;
+  window.pickExpYear=pickExpYear;
+  window.syncToWebDAV=syncToWebDAV;
+  window.syncFromWebDAV=syncFromWebDAV;
+  window.exportData=exportData;
+  window.importData=importData;
+
+  /* ========== boot ========== */
+  load();
+  bindFuelAuto();
+  setupWd();
+  // 默认进入首页，按当前激活视图渲染
+  renderAll();
+})();
+</script>
+
+</body>
+</html>
