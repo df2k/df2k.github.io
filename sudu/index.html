@@ -439,8 +439,11 @@ function b64decode(b64){ return decodeURIComponent(escape(atob(b64))); }
 
 function ghActive(){ return GH.enabled && GH.token && GH.token.indexOf('YOUR_')!==0; }
 
+// 兼容 classic (ghp_) 和 fine-grained (github_pat_) 两种 token 格式
+function ghAuth(){ return 'Bearer '+GH.token; }
+
 async function ghRead(){
-  const res=await fetch(ghUrl(),{headers:{Authorization:'token '+GH.token,Accept:'application/vnd.github+json'}});
+  const res=await fetch(ghUrl(),{headers:{Authorization:ghAuth(),Accept:'application/vnd.github+json'}});
   if(res.status===404) return {data:{},sha:null};
   if(!res.ok) throw new Error('ghRead '+res.status);
   const j=await res.json();
@@ -452,12 +455,12 @@ async function ghWrite(data){
   if(ghSha) body.sha=ghSha;
   const res=await fetch(ghUrl(),{
     method:'PUT',
-    headers:{Authorization:'token '+GH.token,'Content-Type':'application/json',Accept:'application/vnd.github+json'},
+    headers:{Authorization:ghAuth(),'Content-Type':'application/json',Accept:'application/vnd.github+json'},
     body:JSON.stringify(body)
   });
   if(res.status===409){ // sha 冲突，重试一次
     const r=await ghRead(); ghSha=r.sha;
-    if(ghSha){ body.sha=ghSha; const r2=await fetch(ghUrl(),{method:'PUT',headers:{Authorization:'token '+GH.token,'Content-Type':'application/json',Accept:'application/vnd.github+json'},body:JSON.stringify(body)}); if(!r2.ok) throw new Error('ghWrite retry '+r2.status); ghSha=(await r2.json()).content.sha; return; }
+    if(ghSha){ body.sha=ghSha; const r2=await fetch(ghUrl(),{method:'PUT',headers:{Authorization:ghAuth(),'Content-Type':'application/json',Accept:'application/vnd.github+json'},body:JSON.stringify(body)}); if(!r2.ok) throw new Error('ghWrite retry '+r2.status); ghSha=(await r2.json()).content.sha; return; }
   }
   if(!res.ok) throw new Error('ghWrite '+res.status);
   ghSha=(await res.json()).content.sha;
