@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>DF · 手机测试版</title>
+<title>DFGAME</title>
 <style>
   :root{
     --primary:#19c2a0;
@@ -415,8 +415,78 @@ let S={board:[],solution:[],given:[],notes:[],sel:{r:-1,c:-1},diff:'medium',diff
 /* ============ 存储 ============ */
 const LS=window.localStorage;
 function lsGet(k){try{return LS.getItem(k);}catch(e){return null;}}
-function lsSet(k,v){try{LS.setItem(k,v);}catch(e){}}
-function lsDel(k){try{LS.removeItem(k);}catch(e){}}
+function lsSet(k,v){try{LS.setItem(k,v);}catch(e){} schedulePush();}
+function lsDel(k){try{LS.removeItem(k);}catch(e){} schedulePush();}
+
+/* ============ 远程存储（GitHub） ============
+ * 把本地记录同步到 GitHub 仓库的一个 JSON 文件，实现换设备同步。
+ * 注意：token 写在网页里，任何打开页面的人都能在 DevTools 看到。
+ * 建议用「细粒度 PAT」，只授权这一个仓库的 contents 读写，降低风险。
+ * 不想用远程时把 enabled 设为 false 即可，完全退回纯本地。
+ */
+const GH={
+  enabled:true,                       // false = 只用本地，不做远程同步
+  token:'YOUR_GITHUB_PAT',            // 填入你的 Personal Access Token（需 repo 权限）
+  owner:'YOUR_USERNAME',              // GitHub 用户名
+  repo:'YOUR_REPO',                   // 仓库名（网页所在仓库）
+  path:'sudoku-records.json'          // 仓库内用来存记录的文件
+};
+let ghSha=null, ghBusy=false, ghTimer=null;
+
+function ghUrl(){ return 'https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/'+encodeURIComponent(GH.path); }
+function b64encode(str){ return btoa(unescape(encodeURIComponent(str))); }
+function b64decode(b64){ return decodeURIComponent(escape(atob(b64))); }
+
+function ghActive(){ return GH.enabled && GH.token && GH.token.indexOf('YOUR_')!==0; }
+
+async function ghRead(){
+  const res=await fetch(ghUrl(),{headers:{Authorization:'token '+GH.token,Accept:'application/vnd.github+json'}});
+  if(res.status===404) return {data:{},sha:null};
+  if(!res.ok) throw new Error('ghRead '+res.status);
+  const j=await res.json();
+  return {data:JSON.parse(b64decode(j.content)),sha:j.sha};
+}
+
+async function ghWrite(data){
+  const body={message:'sync sudoku records',content:b64encode(JSON.stringify(data))};
+  if(ghSha) body.sha=ghSha;
+  const res=await fetch(ghUrl(),{
+    method:'PUT',
+    headers:{Authorization:'token '+GH.token,'Content-Type':'application/json',Accept:'application/vnd.github+json'},
+    body:JSON.stringify(body)
+  });
+  if(res.status===409){ // sha 冲突，重试一次
+    const r=await ghRead(); ghSha=r.sha;
+    if(ghSha){ body.sha=ghSha; const r2=await fetch(ghUrl(),{method:'PUT',headers:{Authorization:'token '+GH.token,'Content-Type':'application/json',Accept:'application/vnd.github+json'},body:JSON.stringify(body)}); if(!r2.ok) throw new Error('ghWrite retry '+r2.status); ghSha=(await r2.json()).content.sha; return; }
+  }
+  if(!res.ok) throw new Error('ghWrite '+res.status);
+  ghSha=(await res.json()).content.sha;
+}
+
+function collectAll(){ const o={}; for(let i=0;i<LS.length;i++){const k=LS.key(i); o[k]=LS.getItem(k);} return o; }
+
+async function pushToGitHub(){
+  if(!ghActive()||ghBusy) return;
+  ghBusy=true;
+  try{
+    if(ghSha===null){ const r=await ghRead(); ghSha=r.sha; }
+    await ghWrite(collectAll());
+  }catch(e){ console.warn('[GitHub sync] push 失败：',e); }
+  finally{ ghBusy=false; }
+}
+
+function schedulePush(){ clearTimeout(ghTimer); ghTimer=setTimeout(pushToGitHub,800); }
+
+async function pullFromGitHub(){
+  if(!ghActive()) return;
+  try{
+    const r=await ghRead();
+    ghSha=r.sha;
+    const data=r.data||{};
+    Object.keys(data).forEach(k=>{ if(data[k]!=null) LS.setItem(k,data[k]); });
+    console.log('[GitHub sync] 已拉取',Object.keys(data).length,'条记录');
+  }catch(e){ console.warn('[GitHub sync] pull 失败：',e); }
+}
 
 /* ============ 视图切换 ============ */
 function showView(name){
@@ -1142,8 +1212,8 @@ function chessReplay(){ document.getElementById('chessOverlay').classList.remove
 document.getElementById('gomokuCanvas').addEventListener('click',gomokuTap);
 document.getElementById('xiangqiCanvas').addEventListener('click',xqTap);
 
-// 初始化首页统计
-refreshHome();
+// 初始化：先从 GitHub 拉取记录，再渲染首页
+(async function(){ await pullFromGitHub(); refreshHome(); })();
 </script>
 </body>
 </html>
