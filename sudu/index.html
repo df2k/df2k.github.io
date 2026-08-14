@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>DF · 手机测试版</title>
+<style>
+  :root{
+    --primary:#19c2a0;
+    --primary-dark:#0fa98a;
+    --primary-soft:#cdeee5;
+    --primary-soft2:#e8f6f1;
+    --bg:#eaf6f2;
+    --card:#ffffff;
+    --text:#1f2d2b;
+    --muted:#6b7d79;
+    --error:#ff5252;
+    --given:#2b3a37;
+    --user:#0fa98a;
+    --line:#cfe6df;
+    --shadow:0 6rpx 20rpx rgba(15,169,138,.12);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Helvetica,"Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  #app{max-width:480px; margin:0 auto; min-height:100vh; background:var(--bg);
+    position:relative; overflow:hidden;}
+  .view{display:none; padding:0 0 24px; animation:fade .25s ease;}
+  .view.active{display:block;}
+  @keyframes fade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+  .topbar{display:flex; align-items:center; justify-content:space-between;
+    padding:calc(env(safe-area-inset-top) + 14px) 18px 14px; }
+  .topbar h1{font-size:20px; font-weight:700; margin:0; color:var(--text);}
+  .icon-btn{width:38px; height:38px; border-radius:50%; border:none; background:var(--primary-soft);
+    color:var(--primary-dark); font-size:18px; display:flex; align-items:center; justify-content:center;}
+
+  /* 首页卡片 */
+  .container{padding:0 16px;}
+  .card{background:var(--card); border-radius:18px; padding:16px; box-shadow:0 6px 20px rgba(15,169,138,.10); margin-bottom:14px;}
+  .daily-card{background:linear-gradient(135deg,#19c2a0,#13a98d); color:#fff; position:relative; overflow:hidden;}
+  .daily-card .big{font-size:18px; font-weight:700; display:flex; align-items:center; gap:10px;}
+  .daily-card .sub{font-size:13px; opacity:.92; margin-top:6px;}
+  .daily-card .deco{position:absolute; right:-10px; top:-10px; font-size:64px; opacity:.18;}
+  .daily-card .row{display:flex; align-items:center; justify-content:space-between;}
+  .pill{background:rgba(255,255,255,.22); border-radius:20px; padding:8px 14px; font-size:13px; font-weight:600;}
+
+  .play-card .row{display:flex; gap:10px;}
+  .btn{flex:1; border:none; border-radius:14px; padding:14px; font-size:15px; font-weight:700; cursor:pointer;}
+  .btn-primary{background:var(--primary); color:#fff;}
+  .btn-ghost{background:var(--primary-soft); color:var(--primary-dark);}
+  .btn:disabled{opacity:.45; cursor:not-allowed;}
+
+  .section-title{font-size:14px; color:var(--muted); margin:18px 4px 10px; font-weight:600;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .game-tile{background:var(--card); border-radius:16px; padding:16px; box-shadow:0 6px 18px rgba(15,169,138,.08);
+    text-align:center; cursor:pointer;}
+  .game-tile .emoji{font-size:34px;}
+  .game-tile .name{font-size:15px; font-weight:700; margin-top:8px;}
+  .game-tile .tag{font-size:11px; color:var(--muted); margin-top:2px;}
+  .soon{opacity:.6;}
+
+  .stats{display:flex; gap:12px;}
+  .stat{flex:1; text-align:center;}
+  .stat .v{font-size:22px; font-weight:800; color:var(--primary-dark);}
+  .stat .l{font-size:12px; color:var(--muted); margin-top:2px;}
+
+  /* 难度选择 */
+  .diff-list{padding:0 16px;}
+  .diff-item{background:var(--card); border-radius:16px; padding:18px 16px; margin-bottom:12px;
+    display:flex; align-items:center; justify-content:space-between; box-shadow:0 6px 18px rgba(15,169,138,.08); cursor:pointer;}
+  .diff-item .l{font-size:17px; font-weight:700;}
+  .diff-item .d{font-size:12px; color:var(--muted); margin-top:3px;}
+  .diff-item .arrow{color:var(--primary); font-size:20px;}
+
+  /* 游戏页 */
+  .game-top{display:flex; align-items:center; justify-content:space-between; padding:12px 16px;
+    background:var(--card); border-bottom:1px solid var(--line);}
+  .game-top .back{font-size:22px; color:var(--primary-dark); background:none; border:none; padding:4px 8px;}
+  .game-top .meta{text-align:center; flex:1;}
+  .game-top .lvl{font-size:15px; font-weight:700;}
+  .game-top .right{display:flex; gap:14px; align-items:center; font-size:13px; color:var(--muted); min-width:96px; justify-content:flex-end;}
+  .game-top .right b{color:var(--error); font-size:15px;}
+  .timer{font-variant-numeric:tabular-nums; font-weight:700; color:var(--text);}
+
+  .board-wrap{padding:14px 10px 6px;}
+  .board{display:grid; grid-template-columns:repeat(9,1fr); background:var(--card);
+    border:3px solid var(--primary); border-radius:8px; overflow:hidden; user-select:none;}
+  .cell{position:relative; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center;
+    font-size:22px; font-weight:600; border-right:1px solid var(--line); border-bottom:1px solid var(--line);
+    background:#fff; cursor:pointer;}
+  .cell:nth-child(9n){border-right:none;}
+  .cell.br{ border-right:2px solid var(--primary); }
+  .cell.bb{ border-bottom:2px solid var(--primary); }
+  .cell.given{color:var(--given);}
+  .cell.user{color:var(--user);}
+  .cell.peer{background:var(--primary-soft2);}
+  .cell.same{background:var(--primary-soft);}
+  .cell.sel{background:var(--primary-soft); box-shadow:inset 0 0 0 2px var(--primary);}
+  .cell.err{color:var(--error); background:#ffe6e6;}
+  .cell .notes{position:absolute; inset:2px; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr);}
+  .cell .notes span{font-size:9px; color:var(--muted); display:flex; align-items:center; justify-content:center; line-height:1;}
+
+  .tools{display:flex; justify-content:space-around; padding:12px 8px 4px;}
+  .tool{background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--muted); font-size:12px; cursor:pointer;}
+  .tool .ic{font-size:22px;}
+  .tool.on{color:var(--primary-dark); font-weight:700;}
+
+  .keyboard{display:grid; grid-template-columns:repeat(9,1fr); gap:6px; padding:10px 10px 0;}
+  .key{position:relative; background:var(--card); border:none; border-radius:12px; padding:14px 0;
+    font-size:22px; font-weight:700; color:var(--primary-dark); box-shadow:0 3px 10px rgba(15,169,138,.10); cursor:pointer;}
+  .key.done{color:#c9d6d2; background:#f3f7f5; box-shadow:none;}
+  .key .rem{position:absolute; top:3px; right:6px; font-size:9px; color:var(--muted); font-weight:600;}
+
+  /* 弹层 */
+  .overlay{position:fixed; inset:0; background:rgba(20,40,35,.5); display:none; align-items:center; justify-content:center; z-index:50; padding:30px;}
+  .overlay.active{display:flex;}
+  .modal{background:#fff; border-radius:20px; padding:26px 22px; width:100%; max-width:320px; text-align:center;}
+  .modal h2{margin:0 0 6px; font-size:22px;}
+  .modal p{color:var(--muted); margin:6px 0 18px; font-size:14px;}
+  .modal .big-time{font-size:34px; font-weight:800; color:var(--primary-dark); margin:8px 0;}
+  .modal .mbtns{display:flex; gap:10px;}
+  .modal .mbtns .btn{padding:12px;}
+
+  /* 日历 */
+  .cal-head{display:flex; align-items:center; justify-content:space-between; padding:8px 2px 14px;}
+  .cal-head .ttl{font-weight:700; font-size:16px;}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
+  .cal-dow{text-align:center; font-size:12px; color:var(--muted); padding:4px 0;}
+  .cal-day{aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; border-radius:10px;
+    font-size:14px; position:relative; background:var(--card);}
+  .cal-day.today{background:var(--primary); color:#fff; font-weight:700;}
+  .cal-day.done::after{content:"✓"; position:absolute; top:2px; right:4px; font-size:10px; color:var(--primary);}
+  .cal-day.today.done::after{color:#fff;}
+  .cal-day.future{color:#c9d6d2;}
+  .cal-day.resume{box-shadow:inset 0 0 0 2px var(--primary);}
+  .cal-day.sel{outline:2px solid var(--primary-dark); outline-offset:-2px;}
+  .cal-day .badge{position:absolute; top:2px; right:4px; font-size:9px; color:var(--primary-dark); font-weight:700;}
+  .toast{position:fixed; left:50%; bottom:80px; transform:translateX(-50%); background:rgba(20,40,35,.9);
+    color:#fff; padding:10px 18px; border-radius:20px; font-size:14px; z-index:99; opacity:0; transition:opacity .2s; pointer-events:none;}
+  .toast.show{opacity:1;}
+
+  /* 棋类游戏 */
+  .g-bar{display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--card); border-bottom:1px solid var(--line);}
+  .g-bar .info{text-align:center; flex:1; font-size:14px; font-weight:700;}
+  .g-bar .info .sub{font-size:12px; color:var(--muted); font-weight:400; margin-top:2px;}
+  .diff-chips{display:flex; gap:8px; padding:12px 16px 4px; justify-content:center;}
+  .chip{flex:1; max-width:120px; border:1.5px solid var(--line); background:#fff; color:var(--muted);
+    border-radius:20px; padding:9px 0; font-size:14px; font-weight:700; cursor:pointer;}
+  .chip.on{background:var(--primary); color:#fff; border-color:var(--primary);}
+  .chess-wrap{padding:12px 8px; display:flex; justify-content:center;}
+  .gomoku-canvas{display:block; background:#e3b96b; border-radius:10px; touch-action:none; box-shadow:0 6px 18px rgba(0,0,0,.12);}
+  .xq-canvas{display:block; background:#f3dca0; border-radius:10px; touch-action:none; box-shadow:0 6px 18px rgba(0,0,0,.12);}
+  .thinking{text-align:center; color:var(--muted); font-size:13px; padding:6px 0 2px; min-height:20px;}
+  .g-actions{display:flex; gap:10px; padding:14px 16px;}
+  .g-actions .btn{flex:1; padding:13px; font-size:14px;}
+
+  /* 首页等权重 / DF 品牌 */
+  .brand{font-size:22px; font-weight:800; color:var(--primary-dark); letter-spacing:1px;}
+  .games{display:flex; flex-direction:column; gap:12px; margin-top:6px;}
+  .game-card{background:var(--card); border-radius:16px; padding:16px; box-shadow:0 6px 18px rgba(15,169,138,.08);
+    display:flex; align-items:center; gap:14px; cursor:pointer;}
+  .game-card .g-icon{width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center;
+    font-size:24px; font-weight:800; color:#fff; flex:0 0 auto;}
+  .g-sudoku{background:linear-gradient(135deg,#19c2a0,#13a98d);}
+  .g-gomoku{background:linear-gradient(135deg,#5b8def,#3a6fd8);}
+  .g-xiangqi{background:linear-gradient(135deg,#e0973a,#c97c1f);}
+  .game-card .g-name{font-size:17px; font-weight:700; flex:1;}
+  .game-card .g-act{font-size:14px; color:var(--primary-dark); font-weight:600; padding-left:8px;}
+  .game-card .g-new{font-size:13px; color:var(--muted); font-weight:600; padding-left:10px; white-space:nowrap;}
+
+  /* 每日挑战总入口（hub） */
+  .daily-hero{text-align:center; padding:6px 0 16px;}
+  .daily-hero .ttl{font-size:20px; font-weight:800; color:var(--text);}
+  .daily-hero .sub{font-size:13px; color:var(--muted); margin-top:4px;}
+  .gcard{background:var(--card); border-radius:16px; padding:16px; margin-bottom:12px; display:flex; align-items:center; gap:14px;
+    box-shadow:0 6px 18px rgba(15,169,138,.08); cursor:pointer;}
+  .gcard .g-icon{width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center;
+    font-size:22px; font-weight:800; color:#fff; flex:0 0 auto;}
+  .gcard .g-meta{flex:1;}
+  .gcard .g-name{font-size:17px; font-weight:700;}
+  .gcard .g-status{font-size:12px; color:var(--muted); margin-top:3px;}
+  .gcard .g-status.done{color:var(--primary); font-weight:600;}
+  .gcard .g-btn{background:var(--primary); color:#fff; border-radius:20px; padding:8px 16px; font-size:13px; font-weight:600;}
+
+  /* 难度锁定（每日挑战） */
+  .diff-chips.locked{pointer-events:none; opacity:.65;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 首页 -->
+  <section id="view-home" class="view active">
+    <div class="topbar">
+      <h1 class="brand">DF</h1>
+      <button class="icon-btn" onclick="toast('设置功能开发中')">⚙</button>
+    </div>
+    <div class="container">
+      <div class="card daily-card" onclick="openDaily()">
+        <div class="deco">⭐</div>
+        <div class="row">
+          <div>
+            <div class="big">📅 每日挑战</div>
+            <div class="sub" id="dailySub">三款游戏 · 每天一题</div>
+          </div>
+          <div class="pill" id="dailyPill">开始 ›</div>
+        </div>
+      </div>
+
+      <div class="section-title">选择游戏</div>
+      <div class="games">
+        <div class="game-card" onclick="onSudokuCard()">
+          <div class="g-icon g-sudoku">数</div>
+          <div class="g-name">数独</div>
+          <div class="g-act" id="sudokuAct">开始 ›</div>
+          <div class="g-new" id="sudokuNew" style="display:none" onclick="event.stopPropagation();startNewGame();">新游戏 ›</div>
+        </div>
+        <div class="game-card" onclick="goGomoku()">
+          <div class="g-icon g-gomoku">五</div>
+          <div class="g-name">五子棋</div>
+          <div class="g-act">开始 ›</div>
+        </div>
+        <div class="game-card" onclick="goChess()">
+          <div class="g-icon g-xiangqi">象</div>
+          <div class="g-name">中国象棋</div>
+          <div class="g-act">开始 ›</div>
+        </div>
+      </div>
+
+      <div class="section-title">我的统计</div>
+      <div class="card stats">
+        <div class="stat"><div class="v" id="stPlayed">0</div><div class="l">已玩局数</div></div>
+        <div class="stat"><div class="v" id="stDaily">0</div><div class="l">每日完成</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 难度选择 -->
+  <section id="view-difficulty" class="view">
+    <div class="topbar"><button class="icon-btn" onclick="showView('home')">‹</button><h1>选择难度</h1><div style="width:38px"></div></div>
+    <div class="diff-list" id="diffList"></div>
+  </section>
+
+  <!-- 每日挑战：每游戏日历 -->
+  <section id="view-daily" class="view">
+    <div class="topbar"><button class="icon-btn" onclick="showView('dailyhub')">‹</button><h1 id="dgTitle">每日挑战</h1><div style="width:38px"></div></div>
+    <div class="container">
+      <div class="card">
+        <div class="cal-head">
+          <button class="icon-btn" onclick="changeMonth(-1)">‹</button>
+          <div class="ttl" id="calTitle"></div>
+          <button class="icon-btn" onclick="changeMonth(1)">›</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+        <button class="btn btn-primary" style="margin-top:16px; width:100%" id="dailyStartBtn" onclick="dgStartSelected()">开始今天</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 每日挑战：游戏总入口 -->
+  <section id="view-dailyhub" class="view">
+    <div class="topbar"><button class="icon-btn" onclick="showView('home')">‹</button><h1>每日挑战</h1><div style="width:38px"></div></div>
+    <div class="container">
+      <div class="daily-hero">
+        <div class="ttl">每日挑战</div>
+        <div class="sub">每天与全网玩家挑战同一道题</div>
+      </div>
+      <div id="dhGames"></div>
+    </div>
+  </section>
+
+  <!-- 游戏 -->
+  <section id="view-game" class="view">
+    <div class="game-top">
+      <button class="back" onclick="confirmExit()">‹</button>
+      <div class="meta"><div class="lvl" id="gLevel">中等</div></div>
+      <div class="right">
+        <span>错误 <b id="gErr">0/3</b></span>
+        <span class="timer" id="gTimer">00:00</span>
+      </div>
+    </div>
+    <div class="board-wrap"><div class="board" id="board"></div></div>
+    <div class="tools">
+      <button class="tool" onclick="undo()"><span class="ic">↩️</span>撤销</button>
+      <button class="tool" onclick="erase()"><span class="ic">🧽</span>清除</button>
+      <button class="tool" id="noteBtn" onclick="toggleNote()"><span class="ic">✏️</span>笔记</button>
+      <button class="tool" onclick="hint()"><span class="ic">💡</span>提示<span id="hintN"></span></button>
+      <button class="tool" onclick="restartGame()"><span class="ic">🔄</span>重新开始</button>
+    </div>
+    <div class="keyboard" id="keyboard"></div>
+  </section>
+
+  <!-- 五子棋 -->
+  <section id="view-gomoku" class="view">
+    <div class="topbar"><button class="icon-btn" onclick="exitGomoku()">‹</button><h1>五子棋</h1><div style="width:38px"></div></div>
+    <div class="diff-chips" id="gomokuDiff">
+      <button class="chip" data-d="easy" onclick="gomokuSetDiff('easy')">容易</button>
+      <button class="chip on" data-d="medium" onclick="gomokuSetDiff('medium')">中等</button>
+      <button class="chip" data-d="hard" onclick="gomokuSetDiff('hard')">困难</button>
+    </div>
+    <div class="g-bar"><div class="info" id="gmkInfo">你执黑 · 先手</div></div>
+    <div class="chess-wrap"><canvas id="gomokuCanvas" class="gomoku-canvas"></canvas></div>
+    <div class="thinking" id="gmkThinking"></div>
+    <div class="g-actions">
+      <button class="btn btn-ghost" onclick="gomokuUndo()">悔棋</button>
+      <button class="btn btn-ghost" onclick="gomokuRestart()">重开</button>
+      <button class="btn btn-primary" onclick="exitGomoku()">退出</button>
+    </div>
+  </section>
+
+  <!-- 中国象棋 -->
+  <section id="view-xiangqi" class="view">
+    <div class="topbar"><button class="icon-btn" onclick="exitXiangqi()">‹</button><h1>中国象棋</h1><div style="width:38px"></div></div>
+    <div class="diff-chips" id="xiangqiDiff">
+      <button class="chip" data-d="easy" onclick="xqSetDiff('easy')">容易</button>
+      <button class="chip on" data-d="medium" onclick="xqSetDiff('medium')">中等</button>
+      <button class="chip" data-d="hard" onclick="xqSetDiff('hard')">困难</button>
+    </div>
+    <div class="g-bar"><div class="info" id="xqInfo">你执红 · 先手</div></div>
+    <div class="chess-wrap"><canvas id="xiangqiCanvas" class="xq-canvas"></canvas></div>
+    <div class="thinking" id="xqThinking"></div>
+    <div class="g-actions">
+      <button class="btn btn-ghost" onclick="xqUndo()">悔棋</button>
+      <button class="btn btn-ghost" onclick="xqRestart()">重开</button>
+      <button class="btn btn-primary" onclick="exitXiangqi()">退出</button>
+    </div>
+  </section>
+
+  <!-- 棋类通用结算弹层 -->
+  <div class="overlay" id="chessOverlay">
+    <div class="modal">
+      <h2 id="chessTitle">结束</h2>
+      <p id="chessSub"></p>
+      <div class="mbtns">
+        <button class="btn btn-ghost" onclick="closeChess();showView('home')">返回首页</button>
+        <button class="btn btn-primary" onclick="chessReplay()">再来一局</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 胜利弹层 -->
+  <div class="overlay" id="winOverlay">
+    <div class="modal">
+      <h2 id="winTitle">🎉 完成！</h2>
+      <p id="winSub">太棒了，全部正确</p>
+      <div class="big-time" id="winTime">00:00</div>
+      <p id="winExtra"></p>
+      <div class="mbtns">
+        <button class="btn btn-ghost" onclick="showView('home');closeWin()">返回首页</button>
+        <button class="btn btn-primary" onclick="afterWinNew()">再来一局</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 失败/退出弹层 -->
+  <div class="overlay" id="pauseOverlay">
+    <div class="modal">
+      <h2 id="pauseTitle">已暂停</h2>
+      <p id="pauseSub">游戏进度已保存</p>
+      <div class="mbtns">
+        <button class="btn btn-ghost" onclick="closePause();showView('home')">退出</button>
+        <button class="btn btn-primary" id="pauseResume" onclick="resumeGame()">继续</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* ============ 数独核心算法 ============ */
+function makeRng(seed){let t=seed>>>0;return function(){t+=0x6D2B79F5;let r=Math.imul(t^(t>>>15),1|t);r^=r+Math.imul(r^(r>>>7),61|r);return((r^(r>>>14))>>>0)/4294967296;};}
+function seedFromDate(key){let h=2166136261;for(let i=0;i<key.length;i++){h^=key.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function shuffle(arr,rng){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function isValid(b,r,c,n){for(let i=0;i<9;i++){if(b[r][i]===n)return false;if(b[i][c]===n)return false;}const br=Math.floor(r/3)*3,bc=Math.floor(c/3)*3;for(let i=0;i<3;i++)for(let j=0;j<3;j++)if(b[br+i][bc+j]===n)return false;return true;}
+function fillBoard(b,rng){for(let r=0;r<9;r++)for(let c=0;c<9;c++){if(b[r][c]===0){const nums=shuffle([1,2,3,4,5,6,7,8,9],rng);for(const n of nums){if(isValid(b,r,c,n)){b[r][c]=n;if(fillBoard(b,rng))return true;b[r][c]=0;}}return false;}}return true;}
+function countSolutions(board,limit){let count=0;const b=board.map(row=>row.slice());function bt(){for(let r=0;r<9&&count<limit;r++)for(let c=0;c<9&&count<limit;c++){if(b[r][c]===0){for(let n=1;n<=9;n++){if(isValid(b,r,c,n)){b[r][c]=n;bt();b[r][c]=0;if(count>=limit)return;}}return;}}count++;}bt();return count;}
+function generatePuzzle(difficulty,seed){
+  const map={easy:36,medium:44,hard:50,expert:56};
+  const remove=map[difficulty]||44;
+  const rng=seed!=null?makeRng(seed):Math.random;
+  for(let attempt=0;attempt<30;attempt++){
+    const solution=Array.from({length:9},()=>Array(9).fill(0));
+    fillBoard(solution,rng);
+    const puzzle=solution.map(r=>r.slice());
+    const pos=shuffle([...Array(81).keys()],rng);
+    let removed=0;
+    for(const p of pos){if(removed>=remove)break;const r=Math.floor(p/9),c=p%9;if(puzzle[r][c]===0)continue;const s=puzzle[r][c];puzzle[r][c]=0;if(countSolutions(puzzle,2)!==1){puzzle[r][c]=s;}else removed++;}
+    if(removed>=remove)return{puzzle,solution};
+  }
+  const solution=Array.from({length:9},()=>Array(9).fill(0));fillBoard(solution,rng);
+  const puzzle=solution.map(r=>r.slice());const pos=shuffle([...Array(81).keys()],rng);let removed=0;
+  for(const p of pos){if(removed>=remove)break;const r=Math.floor(p/9),c=p%9;puzzle[r][c]=0;removed++;}
+  return{puzzle,solution};
+}
+function getCandidates(b,r,c){if(b[r][c]!==0)return[];const out=[];for(let n=1;n<=9;n++)if(isValid(b,r,c,n))out.push(n);return out;}
+function findErrors(b,sol){const e=[];for(let r=0;r<9;r++)for(let c=0;c<9;c++)if(b[r][c]!==0&&b[r][c]!==sol[r][c])e.push(r*9+c);return e;}
+function isComplete(b){for(let r=0;r<9;r++)for(let c=0;c<9;c++)if(b[r][c]===0)return false;return true;}
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+
+/* ============ 状态 ============ */
+const DIFFS=[
+  {key:'easy',name:'容易',desc:'36 个空格 · 轻松上手'},
+  {key:'medium',name:'中等',desc:'44 个空格 · 略需思考'},
+  {key:'hard',name:'困难',desc:'50 个空格 · 挑战脑力'},
+  {key:'expert',name:'专家',desc:'56 个空格 · 高手专属'}
+];
+const HINT_LIMIT=3, MAX_ERR=3;
+let S={board:[],solution:[],given:[],notes:[],sel:{r:-1,c:-1},diff:'medium',diffName:'中等',
+  mode:'normal',err:0,elapsed:0,timer:null,status:'playing',note:false,hint:HINT_LIMIT,
+  history:[],dateKey:null};
+
+/* ============ 存储 ============ */
+const LS=window.localStorage;
+function lsGet(k){try{return LS.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{LS.setItem(k,v);}catch(e){}}
+function lsDel(k){try{LS.removeItem(k);}catch(e){}}
+
+/* ============ 视图切换 ============ */
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  if(name==='home')refreshHome();
+}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1600);}
+
+/* ============ 每日完成存储（按游戏分类） ============ */
+function getDailyDone(game){ try{ return JSON.parse(lsGet('df_daily_'+game)||'{}')||{}; }catch(e){ return {}; } }
+function recordDailyDone(game,dateKey){ const d=getDailyDone(game); d[dateKey]=true; lsSet('df_daily_'+game,JSON.stringify(d)); }
+function dailySaveKey(game,dateKey){ return 'df_daily_save_'+game+'_'+dateKey; }
+function hasDailySave(game,dateKey){ return !!lsGet(dailySaveKey(game,dateKey)); }
+
+/* ============ 首页 ============ */
+function refreshHome(){
+  const saved=lsGet('sudoku_save');
+  const act=document.getElementById('sudokuAct');
+  if(act) act.textContent = saved ? '继续上次 ›' : '开始 ›';
+  const newBtn=document.getElementById('sudokuNew');
+  if(newBtn) newBtn.style.display = saved ? '' : 'none';
+  const st=JSON.parse(lsGet('sudoku_stats')||'{}');
+  document.getElementById('stPlayed').textContent=st.played||0;
+  const total=Object.keys(getDailyDone('sudoku')).length+Object.keys(getDailyDone('gomoku')).length+Object.keys(getDailyDone('xiangqi')).length;
+  document.getElementById('stDaily').textContent=total;
+  const today=todayStr();
+  const anyDailySave=['sudoku','gomoku','xiangqi'].some(g=>hasDailySave(g,today));
+  const pill=document.getElementById('dailyPill');
+  if(pill) pill.textContent= anyDailySave ? '继续 ›' : '开始 ›';
+}
+function goSudoku(){ goDifficulty(); }
+function onSudokuCard(){
+  if(lsGet('sudoku_save')) continueGame();
+  else goDifficulty();
+}
+function startNewGame(){
+  lsDel('sudoku_save');
+  goDifficulty();
+}
+function goGomoku(){ gomokuSetDiff('medium'); }
+function goChess(){ xqSetDiff('medium'); }
+function goDifficulty(){
+  const list=document.getElementById('diffList');list.innerHTML='';
+  DIFFS.forEach(d=>{
+    const el=document.createElement('div');el.className='diff-item';
+    el.innerHTML='<div><div class="l">'+d.name+'</div><div class="d">'+d.desc+'</div></div><div class="arrow">›</div>';
+    el.onclick=()=>startGame(d.key,d.name,'normal');
+    list.appendChild(el);
+  });
+  showView('difficulty');
+}
+
+/* ============ 开始游戏 ============ */
+function startGame(diff,diffName,mode,dateKey){
+  S.diff=diff;S.diffName=diffName;S.mode=mode;S.dateKey=dateKey||null;
+  let res;
+  if(mode==='daily'){
+    const seed=seedFromDate(dateKey+':medium');
+    res=generatePuzzle('medium',seed);
+    S.diff='medium';S.diffName='每日·中等';
+    lsDel(dailySaveKey('sudoku',dateKey));
+  }else{
+    res=generatePuzzle(diff);
+  }
+  S.solution=res.solution;
+  S.board=res.puzzle.map(r=>r.slice());
+  S.given=res.puzzle.map(r=>r.map(v=>v!==0));
+  S.notes=Array.from({length:9},()=>Array.from({length:9},()=>[]));
+  S.sel={r:-1,c:-1};S.err=0;S.elapsed=0;S.status='playing';S.note=false;S.hint=HINT_LIMIT;S.history=[];
+  document.getElementById('gLevel').textContent=S.diffName;
+  document.getElementById('noteBtn').classList.remove('on');
+  buildKeyboard();
+  render();
+  showView('game');
+  startTimer();
+}
+function loadSudokuState(d){
+  S.diff=d.diff;S.diffName=d.diffName;S.mode=d.mode;S.dateKey=d.dateKey;
+  S.solution=d.solution.map(r=>r.slice());S.board=d.board.map(r=>r.slice());S.given=d.given.map(r=>r.slice());S.notes=d.notes.map(r=>r.map(x=>x.slice()));
+  S.sel={r:-1,c:-1};S.err=d.err;S.elapsed=d.elapsed;S.status='playing';S.note=false;S.hint=d.hint;S.history=[];
+  document.getElementById('gLevel').textContent=S.diffName;
+  buildKeyboard();render();showView('game');startTimer();
+}
+function continueGame(){
+  const raw=lsGet('sudoku_save');if(!raw)return;
+  loadSudokuState(JSON.parse(raw));
+}
+function continueDailySudoku(dateKey){
+  const raw=lsGet(dailySaveKey('sudoku',dateKey));if(!raw)return false;
+  loadSudokuState(JSON.parse(raw));
+  return true;
+}
+function restartGame(){
+  document.getElementById('winOverlay').classList.remove('active');
+  document.getElementById('pauseOverlay').classList.remove('active');
+  stopTimer();
+  S.board=S.given.map((row,r)=>row.map((g,c)=>g?S.solution[r][c]:0));
+  S.notes=Array.from({length:9},()=>Array.from({length:9},()=>[]));
+  S.sel={r:-1,c:-1};S.err=0;S.elapsed=0;S.status='playing';S.note=false;S.hint=HINT_LIMIT;S.history=[];
+  document.getElementById('noteBtn').classList.remove('on');
+  render();startTimer();saveProgress();
+  toast('已重新开始');
+}
+
+/* ============ 渲染 ============ */
+function buildKeyboard(){
+  const kb=document.getElementById('keyboard');kb.innerHTML='';
+  for(let n=1;n<=9;n++){
+    const b=document.createElement('button');b.className='key';b.dataset.n=n;
+    b.innerHTML='<span class="rem" id="rem'+n+'"></span>'+n;
+    b.onclick=()=>inputNum(n);
+    kb.appendChild(b);
+  }
+}
+function render(){
+  renderBoard();renderKeyboard();updateStatus();
+}
+function renderBoard(){
+  const board=document.getElementById('board');board.innerHTML='';
+  const selNum=S.sel.r>=0?S.board[S.sel.r][S.sel.c]:0;
+  const errSet=new Set(findErrors(S.board,S.solution));
+  for(let r=0;r<9;r++)for(let c=0;c<9;c++){
+    const cell=document.createElement('div');cell.className='cell';
+    const v=S.board[r][c];
+    if(S.given[r][c])cell.classList.add('given');else if(v!==0)cell.classList.add('user');
+    if(c%3===2&&c!==8)cell.classList.add('br');
+    if(r%3===2&&r!==8)cell.classList.add('bb');
+    if(errSet.has(r*9+c))cell.classList.add('err');
+    if(S.sel.r===r&&S.sel.c===c)cell.classList.add('sel');
+    else if(S.sel.r>=0){
+      if(S.sel.r===r||S.sel.c===c||(Math.floor(S.sel.r/3)===Math.floor(r/3)&&Math.floor(S.sel.c/3)===Math.floor(c/3)))cell.classList.add('peer');
+      if(selNum!==0&&v===selNum)cell.classList.add('same');
+    }
+    if(v!==0){cell.textContent=v;}
+    else if(S.notes[r][c].length){
+      const ng=document.createElement('div');ng.className='notes';
+      for(let n=1;n<=9;n++){const s=document.createElement('span');s.textContent=S.notes[r][c].includes(n)?n:'';ng.appendChild(s);}
+      cell.appendChild(ng);
+    }
+    cell.onclick=()=>selectCell(r,c);
+    board.appendChild(cell);
+  }
+}
+function renderKeyboard(){
+  const cnt=[0,0,0,0,0,0,0,0,0,0];
+  for(let r=0;r<9;r++)for(let c=0;c<9;c++){const v=S.board[r][c];if(v!==0&&v===S.solution[r][c])cnt[v]++;}
+  for(let n=1;n<=9;n++){
+    const rem=9-cnt[n];const el=document.getElementById('rem'+n);
+    if(el)el.textContent=rem>0?rem:'';
+    const key=document.querySelector('.key[data-n="'+n+'"]');
+    if(key)key.classList.toggle('done',rem<=0);
+  }
+}
+function updateStatus(){
+  document.getElementById('gErr').textContent=S.err+'/'+MAX_ERR;
+  document.getElementById('hintN').textContent=S.hint<HINT_LIMIT?(' '+S.hint):'';
+  document.getElementById('gTimer').textContent=fmt(S.elapsed);
+  document.getElementById('noteBtn').classList.toggle('on',S.note);
+}
+function fmt(s){const m=Math.floor(s/60),ss=s%60;return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');}
+
+/* ============ 交互 ============ */
+function selectCell(r,c){S.sel={r,c};renderBoard();}
+function inputNum(n){
+  if(S.status!=='playing')return;
+  const {r,c}=S.sel;if(r<0)return;
+  if(S.given[r][c]){toast('原始数字不能修改');return;}
+  if(S.note){
+    if(S.board[r][c]!==0)return;
+    pushHistory();
+    const set=new Set(S.notes[r][c]);
+    if(set.has(n))set.delete(n);else set.add(n);
+    S.notes[r][c]=[...set].sort((a,b)=>a-b);
+    render();return;
+  }
+  pushHistory();
+  S.board[r][c]=n;S.notes[r][c]=[];
+  // 同行列宫清该候选
+  for(let i=0;i<9;i++){S.notes[r][i]=S.notes[r][i].filter(x=>x!==n);S.notes[i][c]=S.notes[i][c].filter(x=>x!==n);}
+  const br=Math.floor(r/3)*3,bc=Math.floor(c/3)*3;
+  for(let i=0;i<3;i++)for(let j=0;j<3;j++)S.notes[br+i][bc+j]=S.notes[br+i][bc+j].filter(x=>x!==n);
+  if(n!==S.solution[r][c]){S.err++;if(S.err>=MAX_ERR){render();saveProgress();return gameOver();}}
+  render();
+  if(isComplete(S.board)&&findErrors(S.board,S.solution).length===0){win();}
+  else saveProgress();
+}
+function erase(){
+  const {r,c}=S.sel;if(r<0)return;
+  if(S.given[r][c])return;
+  if(S.board[r][c]===0&&S.notes[r][c].length===0)return;
+  pushHistory();S.board[r][c]=0;S.notes[r][c]=[];render();saveProgress();
+}
+function toggleNote(){S.note=!S.note;updateStatus();toast(S.note?'笔记模式：点数字填写候选':'已退出笔记模式');}
+function hint(){
+  if(S.hint<=0){toast('提示次数已用完');return;}
+  const {r,c}=S.sel;if(r<0){toast('请先选一格');return;}
+  if(S.board[r][c]===S.solution[r][c]&&S.board[r][c]!==0){toast('这格已经对了');return;}
+  pushHistory();S.board[r][c]=S.solution[r][c];S.notes[r][c]=[];S.hint--;
+  render();
+  if(isComplete(S.board)&&findErrors(S.board,S.solution).length===0)win();else saveProgress();
+}
+function undo(){
+  if(S.history.length===0){toast('没有可撤销的步骤');return;}
+  const last=S.history.pop();S.board=last.board;S.notes=last.notes;S.err=last.err;render();
+}
+function pushHistory(){S.history.push({board:S.board.map(r=>r.slice()),notes:S.notes.map(r=>r.map(x=>x.slice())),err:S.err});if(S.history.length>200)S.history.shift();}
+
+/* ============ 计时 / 存档 ============ */
+function startTimer(){stopTimer();S.timer=setInterval(()=>{if(S.status==='playing'){S.elapsed++;document.getElementById('gTimer').textContent=fmt(S.elapsed);}},1000);}
+function stopTimer(){if(S.timer){clearInterval(S.timer);S.timer=null;}}
+function saveProgress(){
+  if(S.mode==='normal'){
+    lsSet('sudoku_save',JSON.stringify({diff:S.diff,diffName:S.diffName,mode:S.mode,dateKey:S.dateKey,
+      solution:S.solution,board:S.board,given:S.given,notes:S.notes,err:S.err,elapsed:S.elapsed,hint:S.hint}));
+  } else if(S.mode==='daily'){
+    lsSet(dailySaveKey('sudoku',S.dateKey),JSON.stringify({diff:S.diff,diffName:S.diffName,mode:S.mode,dateKey:S.dateKey,
+      solution:S.solution,board:S.board,given:S.given,notes:S.notes,err:S.err,elapsed:S.elapsed,hint:S.hint}));
+  }
+}
+function confirmExit(){
+  stopTimer();saveProgress();
+  document.getElementById('pauseTitle').textContent='已暂停';
+  document.getElementById('pauseSub').textContent='游戏进度已保存，下次可继续';
+  document.getElementById('pauseResume').style.display='';
+  document.getElementById('pauseOverlay').classList.add('active');
+}
+function resumeGame(){document.getElementById('pauseOverlay').classList.remove('active');S.status='playing';startTimer();}
+function closePause(){document.getElementById('pauseOverlay').classList.remove('active');}
+
+/* ============ 胜负 ============ */
+function win(){
+  stopTimer();S.status='won';
+  const st=JSON.parse(lsGet('sudoku_stats')||'{}');
+  st.played=(st.played||0)+1;
+  st.best=st.best||{};
+  if(!st.best[S.diff]||S.elapsed<st.best[S.diff])st.best[S.diff]=S.elapsed;
+  if(S.mode==='daily'){ recordDailyDone('sudoku', S.dateKey); }
+  lsSet('sudoku_stats',JSON.stringify(st));
+  if(S.mode==='normal')lsDel('sudoku_save');
+  if(S.mode==='daily')lsDel(dailySaveKey('sudoku',S.dateKey));
+  document.getElementById('winTime').textContent=fmt(S.elapsed);
+  document.getElementById('winTitle').textContent=S.mode==='daily'?'🏆 每日挑战完成！':'🎉 完成！';
+  document.getElementById('winSub').textContent=S.mode==='daily'?'今天和全网玩家同题竞技':'太棒了，全部正确';
+  const best=st.best[S.diff];
+  document.getElementById('winExtra').textContent='本局用时 '+fmt(S.elapsed)+(best===S.elapsed?'（新纪录！）':'');
+  document.getElementById('winOverlay').classList.add('active');
+  refreshHome();
+}
+function gameOver(){
+  S.status='lost';stopTimer();
+  document.getElementById('pauseTitle').textContent='挑战失败';
+  document.getElementById('pauseSub').textContent='错误已达 '+MAX_ERR+' 次，再接再厉！';
+  document.getElementById('pauseResume').style.display='none';
+  if(S.mode==='normal')lsDel('sudoku_save');
+  if(S.mode==='daily')lsDel(dailySaveKey('sudoku',S.dateKey));
+  document.getElementById('pauseOverlay').classList.add('active');
+}
+function afterWinNew(){
+  document.getElementById('winOverlay').classList.remove('active');
+  if(S.mode==='daily') startGame('medium','每日·中等','daily', S.dateKey); else goDifficulty();
+}
+function closeWin(){document.getElementById('winOverlay').classList.remove('active');}
+
+/* ============ 每日挑战（hub + 每游戏日历） ============ */
+let calY,calM,calGame='sudoku',curDailyKey='',selDailyKey='';
+const DAILY_GAMES=[{k:'sudoku',n:'数独',cls:'g-sudoku'},{k:'gomoku',n:'五子棋',cls:'g-gomoku'},{k:'xiangqi',n:'中国象棋',cls:'g-xiangqi'}];
+function openDaily(){ renderDailyHub(); showView('dailyhub'); }
+function renderDailyHub(){
+  const today=todayStr();
+  const wrap=document.getElementById('dhGames'); wrap.innerHTML='';
+  DAILY_GAMES.forEach(g=>{
+    const done=!!getDailyDone(g.k)[today];
+    const resume=hasDailySave(g.k,today);
+    const el=document.createElement('div'); el.className='gcard';
+    el.innerHTML='<div class="g-icon '+g.cls+'">'+g.n[0]+'</div>'+
+      '<div class="g-meta"><div class="g-name">'+g.n+'</div>'+
+      '<div class="g-status'+(done?' done':'')+'">'+(done?'今日已完成 ✓':(resume?'今日进行中 · 可继续':'今日未挑战'))+'</div></div>'+
+      '<div class="g-btn">'+(done?'再玩':(resume?'继续':'开始'))+'</div>';
+    el.onclick=()=>openGameDaily(g.k);
+    wrap.appendChild(el);
+  });
+}
+function openGameDaily(game){
+  calGame=game;
+  const names={sudoku:'数独',gomoku:'五子棋',xiangqi:'中国象棋'};
+  document.getElementById('dgTitle').textContent='每日挑战 · '+names[game];
+  const d=new Date(); calY=d.getFullYear(); calM=d.getMonth();
+  selDailyKey=todayStr();
+  renderCal(); showView('daily');
+}
+function changeMonth(dir){calM+=dir;if(calM<0){calM=11;calY--;}if(calM>11){calM=0;calY++;}renderCal();}
+function renderCal(){
+  const done=getDailyDone(calGame);
+  document.getElementById('calTitle').textContent=calY+'年'+(calM+1)+'月';
+  const grid=document.getElementById('calGrid');grid.innerHTML='';
+  ['日','一','二','三','四','五','六'].forEach(d=>{const e=document.createElement('div');e.className='cal-dow';e.textContent=d;grid.appendChild(e);});
+  const first=new Date(calY,calM,1).getDay();const days=new Date(calY,calM+1,0).getDate();
+  const today=todayStr();
+  const now=new Date();
+  for(let i=0;i<first;i++){const e=document.createElement('div');grid.appendChild(e);}
+  for(let d=1;d<=days;d++){
+    const cell=document.createElement('div');cell.className='cal-day';cell.textContent=d;
+    const key=calY+'-'+String(calM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    if(key===today)cell.classList.add('today');
+    if(done[key])cell.classList.add('done');
+    const f=new Date(calY,calM, d);
+    if(f>now){ cell.classList.add('future'); }
+    else {
+      cell.style.cursor='pointer';
+      if(hasDailySave(calGame,key)){ cell.classList.add('resume'); const b=document.createElement('span');b.className='badge';b.textContent='续';cell.appendChild(b); }
+      if(key===selDailyKey) cell.classList.add('sel');
+      cell.onclick=()=>pickDay(key);
+    }
+    grid.appendChild(cell);
+  }
+  updateDailyStartBtn();
+}
+function pickDay(key){ selDailyKey=key; renderCal(); }
+function updateDailyStartBtn(){
+  const btn=document.getElementById('dailyStartBtn'); if(!btn) return;
+  const k=selDailyKey||todayStr();
+  const p=k.split('-'); const label=p[1]+'月'+p[2]+'日';
+  if(hasDailySave(calGame,k)) btn.textContent='继续 '+label;
+  else if(getDailyDone(calGame)[k]) btn.textContent='重玩 '+label;
+  else btn.textContent='开始 '+label;
+}
+function dgStartSelected(){
+  const k=selDailyKey||todayStr(); curDailyKey=k;
+  if(calGame==='sudoku'){ if(hasDailySave('sudoku',k)) continueDailySudoku(k); else startGame('medium','每日·中等','daily',k); }
+  else if(calGame==='gomoku'){ if(hasDailySave('gomoku',k)) gomokuContinueDaily(k); else gomokuStartDaily(k); }
+  else { if(hasDailySave('xiangqi',k)) xqContinueDaily(k); else xqStartDaily(k); }
+}
+/* ============ 五子棋 ============ */
+const G_SIZE=15;
+let gBoard, gTurn, gOver, gMode='medium', gHistory, gLast, gThinking=false, gCurDiff='medium', gDaily=false;
+function gomokuSetDiff(d){ if(gDaily) return; gCurDiff=d; gomokuNew(); }
+function gomokuStartDaily(key){ curDailyKey=key; lsDel(dailySaveKey('gomoku',key)); gCurDiff=['easy','medium','hard'][seedFromDate(key)%3]; gomokuNew(true); }
+function gomokuSaveDaily(){
+  if(!gDaily) return;
+  lsSet(dailySaveKey('gomoku',curDailyKey), JSON.stringify({board:gBoard,curDiff:gCurDiff,history:gHistory,last:gLast,turn:gTurn}));
+}
+function gomokuContinueDaily(dateKey){
+  const raw=lsGet(dailySaveKey('gomoku',dateKey)); if(!raw) return false;
+  const d=JSON.parse(raw);
+  curDailyKey=dateKey; gBoard=d.board.map(r=>r.slice()); gCurDiff=d.curDiff;
+  gHistory=d.history.map(m=>m.slice()); gLast=d.last; gTurn=d.turn||1;
+  gOver=false; gThinking=false; gDaily=true;
+  document.querySelectorAll('#gomokuDiff .chip').forEach(c=>c.classList.toggle('on',c.dataset.d===gCurDiff));
+  document.getElementById('gomokuDiff').classList.add('locked');
+  document.getElementById('gmkInfo').textContent='每日挑战 · 你执黑 · 先手';
+  document.getElementById('gmkThinking').textContent='';
+  showView('gomoku');
+  requestAnimationFrame(gomokuDraw);
+  return true;
+}
+function gomokuNew(daily){
+  gBoard=Array.from({length:G_SIZE},()=>Array(G_SIZE).fill(0));
+  gTurn=1; gOver=false; gHistory=[]; gLast=null; gThinking=false; gDaily=!!daily;
+  document.querySelectorAll('#gomokuDiff .chip').forEach(c=>c.classList.toggle('on',c.dataset.d===gCurDiff));
+  document.getElementById('gomokuDiff').classList.toggle('locked', gDaily);
+  document.getElementById('gmkInfo').textContent= gDaily ? '每日挑战 · 你执黑 · 先手' : '你执黑 · 先手';
+  document.getElementById('gmkThinking').textContent='';
+  showView('gomoku');
+  requestAnimationFrame(gomokuDraw);
+}
+function exitGomoku(){ if(gDaily&&!gOver) gomokuSaveDaily(); gOver=true; gDaily=false; showView('home'); }
+function gomokuDraw(){
+  const cv=document.getElementById('gomokuCanvas');
+  const appW=document.getElementById('app').clientWidth||460;
+  const W=Math.min(appW-20,460);
+  const pad=Math.max(12,W*0.045);
+  const cell=(W-pad*2)/(G_SIZE-1);
+  const dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr; cv.height=W*dpr; cv.style.width=W+'px'; cv.style.height=W+'px';
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,W);
+  ctx.strokeStyle='#7a5230'; ctx.lineWidth=1;
+  for(let i=0;i<G_SIZE;i++){
+    ctx.beginPath(); ctx.moveTo(pad,pad+i*cell); ctx.lineTo(pad+(G_SIZE-1)*cell,pad+i*cell); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad+i*cell,pad); ctx.lineTo(pad+i*cell,pad+(G_SIZE-1)*cell); ctx.stroke();
+  }
+  [[3,3],[3,11],[11,3],[11,11],[7,7]].forEach(([r,c])=>{ ctx.beginPath(); ctx.arc(pad+c*cell,pad+r*cell,3,0,7); ctx.fillStyle='#7a5230'; ctx.fill(); });
+  for(let r=0;r<G_SIZE;r++)for(let c=0;c<G_SIZE;c++){
+    if(gBoard[r][c]){
+      const x=pad+c*cell, y=pad+r*cell;
+      ctx.beginPath(); ctx.arc(x,y,cell*0.42,0,7);
+      ctx.fillStyle=gBoard[r][c]===1?'#1c1c1c':'#fafafa'; ctx.fill();
+      ctx.lineWidth=1; ctx.strokeStyle='#999'; ctx.stroke();
+      if(gLast&&gLast[0]===r&&gLast[1]===c){ ctx.beginPath(); ctx.arc(x,y,3,0,7); ctx.fillStyle=gBoard[r][c]===1?'#fff':'#e33'; ctx.fill(); }
+    }
+  }
+}
+function gomokuTap(e){
+  if(gOver||gThinking||gTurn!==1) return;
+  const cv=document.getElementById('gomokuCanvas'); const rect=cv.getBoundingClientRect();
+  const px=(e.clientX)-rect.left, py=(e.clientY)-rect.top;
+  const W=cv.clientWidth, pad=Math.max(12,W*0.045), cell=(W-pad*2)/(G_SIZE-1);
+  const c=Math.round((px-pad)/cell), r=Math.round((py-pad)/cell);
+  if(r<0||r>=G_SIZE||c<0||c>=G_SIZE||gBoard[r][c]!==0) return;
+  gomokuPlace(r,c,1);
+}
+function gomokuPlace(r,c,who){
+  gBoard[r][c]=who; gLast=[r,c]; gHistory.push([r,c,who]);
+  gomokuDraw();
+  if(gomokuWin(r,c,who)){ gOver=true; gomokuEnd(who===1?'你赢了！🎉':'AI 赢了'); return; }
+  gTurn=who===1?2:1;
+  if(who===1){
+    gThinking=true; document.getElementById('gmkInfo').textContent='AI 思考中…'; document.getElementById('gmkThinking').textContent='AI 思考中…';
+    setTimeout(gomokuAIMove,60);
+  }
+}
+function gomokuAIMove(){
+  const mv=gomokuBest();
+  gThinking=false; document.getElementById('gmkThinking').textContent='';
+  if(!mv){ gOver=true; gomokuEnd('平局'); return; }
+  gomokuPlace(mv[0],mv[1],2);
+  if(!gOver){ document.getElementById('gmkInfo').textContent='轮到你（黑）'; gomokuSaveDaily(); }
+}
+function gomokuCandidates(){
+  const set=[], seen=new Set();
+  for(let r=0;r<G_SIZE;r++)for(let c=0;c<G_SIZE;c++){
+    if(gBoard[r][c]){ for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++){
+      const nr=r+dr,nc=c+dc; if(nr<0||nr>=G_SIZE||nc<0||nc>=G_SIZE||gBoard[nr][nc]!==0)continue;
+      const k=nr*15+nc; if(!seen.has(k)){seen.add(k);set.push([nr,nc]);}
+    }}
+  }
+  return set;
+}
+function gomokuEval(r,c,player){
+  const dirs=[[1,0],[0,1],[1,1],[1,-1]]; let total=0;
+  for(const [dr,dc] of dirs){
+    let count=1, open=0, i=1;
+    while(true){const nr=r+dr*i,nc=c+dc*i; if(nr<0||nr>=G_SIZE||nc<0||nc>=G_SIZE)break; if(gBoard[nr][nc]===player){count++;i++;} else if(gBoard[nr][nc]===0){open++;break;} else break;}
+    i=1;
+    while(true){const nr=r-dr*i,nc=c-dc*i; if(nr<0||nr>=G_SIZE||nc<0||nc>=G_SIZE)break; if(gBoard[nr][nc]===player){count++;i++;} else if(gBoard[nr][nc]===0){open++;break;} else break;}
+    total+=gomokuScore(count,open);
+  }
+  return total;
+}
+function gomokuScore(cnt,open){
+  if(cnt>=5) return 1000000;
+  if(cnt<5&&open===0) return 0;
+  if(cnt===4) return open===2?100000:10000;
+  if(cnt===3) return open===2?1000:100;
+  if(cnt===2) return open===2?100:10;
+  if(cnt===1) return open===2?1:0;
+  return 0;
+}
+function gomokuBest(){
+  const cands=gomokuCandidates();
+  if(cands.length===0) return [7,7];
+  if(gCurDiff==='easy'){
+    const must=cands.find(([r,c])=>gomokuEval(r,c,1)>=10000);
+    if(must) return must;
+    return cands[Math.floor(Math.random()*cands.length)];
+  }
+  let best=null,bestS=-1;
+  for(const [r,c] of cands){
+    const atk=gomokuEval(r,c,2), def=gomokuEval(r,c,1);
+    const s= gCurDiff==='hard'? atk*1.15+def : atk+def*0.9;
+    if(s>bestS){bestS=s;best=[r,c];}
+  }
+  return best;
+}
+function gomokuWin(r,c,who){
+  const dirs=[[1,0],[0,1],[1,1],[1,-1]];
+  for(const [dr,dc] of dirs){
+    let n=1;
+    for(let i=1;i<5;i++){const nr=r+dr*i,nc=c+dc*i; if(nr<0||nr>=G_SIZE||nc<0||nc>=G_SIZE||gBoard[nr][nc]!==who)break; n++;}
+    for(let i=1;i<5;i++){const nr=r-dr*i,nc=c-dc*i; if(nr<0||nr>=G_SIZE||nc<0||nc>=G_SIZE||gBoard[nr][nc]!==who)break; n++;}
+    if(n>=5) return true;
+  }
+  return false;
+}
+function gomokuEnd(msg){
+  document.getElementById('gmkInfo').textContent=msg;
+  document.getElementById('chessTitle').textContent=msg;
+  document.getElementById('chessSub').textContent=(gDaily?'每日挑战 · ':'难度：')+({easy:'容易',medium:'中等',hard:'困难'}[gCurDiff]);
+  if(gDaily && msg.indexOf('你赢了')>=0) recordDailyDone('gomoku', curDailyKey);
+  if(gDaily) lsDel(dailySaveKey('gomoku',curDailyKey));
+  document.getElementById('chessOverlay').classList.add('active');
+}
+function gomokuUndo(){
+  if(gThinking||gHistory.length===0){toast('无法悔棋');return;}
+  if(gHistory.length>=2) gHistory.pop(); gHistory.pop();
+  gBoard=Array.from({length:G_SIZE},()=>Array(G_SIZE).fill(0));
+  gHistory.forEach(([r,c,who])=>gBoard[r][c]=who);
+  gLast=gHistory.length?gHistory[gHistory.length-1].slice(0,2):null;
+  gOver=false; gTurn=1; gThinking=false;
+  document.getElementById('gmkInfo').textContent='你执黑 · 先手';
+  gomokuDraw();
+}
+function gomokuRestart(){ if(gDaily) gomokuStartDaily(curDailyKey); else gomokuNew(); }
+
+/* ============ 中国象棋 ============ */
+const X_ROWS=10, X_COLS=9;
+let xqBoard, xqTurn, xqOver, xqMode='medium', xqHistory, xqSel, xqMoves, xqThinking=false, xqCheck=false, xqCurDiff='medium', xqDaily=false;
+const XQ_INIT=[
+  ['r','n','b','a','k','a','b','n','r'],
+  [null,null,null,null,null,null,null,null,null],
+  [null,'c',null,null,null,null,null,'c',null],
+  ['p',null,'p',null,'p',null,'p',null,'p'],
+  [null,null,null,null,null,null,null,null,null],
+  [null,null,null,null,null,null,null,null,null],
+  ['P',null,'P',null,'P',null,'P',null,'P'],
+  [null,'C',null,null,null,null,null,'C',null],
+  [null,null,null,null,null,null,null,null,null],
+  ['R','N','B','A','K','A','B','N','R']
+];
+const XQ_CHAR={k:'将',a:'士',b:'象',n:'马',r:'车',c:'炮',p:'卒',K:'帅',A:'仕',B:'相',N:'马',R:'车',C:'炮',P:'兵'};
+function isRed(p){return p && p===p.toUpperCase();}
+function opp(col){return col==='r'?'b':'r';}
+function inB(r,c){return r>=0&&r<X_ROWS&&c>=0&&c<X_COLS;}
+function xqVal(p){return {k:10000,a:20,b:22,n:45,r:90,c:45,p:10}[p.toLowerCase()]||0;}
+function xqPos(p,r,c){
+  const t=p.toLowerCase();
+  if(t==='p'){const crossed=isRed(p)?r<=4:r>=5; return crossed?8:2;}
+  if(t==='n'||t==='c'){const cc=Math.abs(c-4); return cc<=2?3:0;}
+  return 0;
+}
+function xqEval(board){
+  let s=0;
+  for(let r=0;r<X_ROWS;r++)for(let c=0;c<X_COLS;c++){const p=board[r][c]; if(p){const sg=isRed(p)?1:-1; s+=sg*(xqVal(p)+xqPos(p,r,c));}}
+  return s;
+}
+function xqApply(board,m){const nb=board.map(row=>row.slice()); nb[m.tr][m.tc]=nb[m.fr][m.fc]; nb[m.fr][m.fc]=null; return nb;}
+function xqKingPos(board,color){for(let r=0;r<X_ROWS;r++)for(let c=0;c<X_COLS;c++){const p=board[r][c]; if(p&&p.toLowerCase()==='k'&&(isRed(p)?'r':'b')===color)return [r,c];} return null;}
+function xqFaceOff(board){
+  let rk=null,bk=null;
+  for(let r=0;r<X_ROWS;r++)for(let c=0;c<X_COLS;c++){const p=board[r][c]; if(p&&p.toLowerCase()==='k'){if(isRed(p))rk=[r,c];else bk=[r,c];}}
+  if(!rk||!bk||rk[1]!==bk[1])return false;
+  const lo=Math.min(rk[0],bk[0]),hi=Math.max(rk[0],bk[0]);
+  for(let r=lo+1;r<hi;r++) if(board[r][rk[1]]!==null) return false;
+  return true;
+}
+function xqPseudo(board,color){
+  const mv=[];
+  for(let r=0;r<X_ROWS;r++)for(let c=0;c<X_COLS;c++){
+    const p=board[r][c]; if(!p||(isRed(p)?'r':'b')!==color)continue;
+    const t=p.toLowerCase(), me=color;
+    if(t==='r'||t==='c'){
+      const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+      for(const [dr,dc] of dirs){
+        let nr=r+dr,nc=c+dc;
+        if(t==='r'){
+          while(inB(nr,nc)){ if(board[nr][nc]===null)mv.push({fr:r,fc:c,tr:nr,tc:nc}); else { if((isRed(board[nr][nc])?'r':'b')!==me)mv.push({fr:r,fc:c,tr:nr,tc:nc}); break; } nr+=dr;nc+=dc; }
+        }else{
+          while(inB(nr,nc)&&board[nr][nc]===null){mv.push({fr:r,fc:c,tr:nr,tc:nc});nr+=dr;nc+=dc;}
+          while(inB(nr,nc)&&board[nr][nc]===null){nr+=dr;nc+=dc;}
+          if(inB(nr,nc)){let mr=nr+dr,mc=nc+dc; while(inB(mr,mc)&&board[mr][mc]===null){mr+=dr;mc+=dc;} if(inB(mr,mc)&&(isRed(board[mr][mc])?'r':'b')!==me)mv.push({fr:r,fc:c,tr:mr,tc:mc});}
+        }
+      }
+    }else if(t==='n'){
+      const cand=[[2,1,1,0],[2,-1,1,0],[-2,1,-1,0],[-2,-1,-1,0],[1,2,0,1],[-1,2,0,1],[1,-2,0,-1],[-1,-2,0,-1]];
+      for(const [dr,dc,lr,lc] of cand){const nr=r+dr,nc=c+dc,legr=r+lr,legc=c+lc; if(inB(nr,nc)&&board[legr][legc]===null&&(board[nr][nc]===null||(isRed(board[nr][nc])?'r':'b')!==me))mv.push({fr:r,fc:c,tr:nr,tc:nc});}
+    }else if(t==='b'){
+      const cand=[[2,2],[2,-2],[-2,2],[-2,-2]];
+      for(const [dr,dc] of cand){const nr=r+dr,nc=c+dc; if(!inB(nr,nc))continue; if(isRed(p)){if(nr<5)continue;}else{if(nr>4)continue;} if(board[r+dr/2][c+dc/2]===null&&(board[nr][nc]===null||(isRed(board[nr][nc])?'r':'b')!==me))mv.push({fr:r,fc:c,tr:nr,tc:nc});}
+    }else if(t==='a'){
+      const cand=[[1,1],[1,-1],[-1,1],[-1,-1]];
+      for(const [dr,dc] of cand){const nr=r+dr,nc=c+dc; if(!inB(nr,nc)||nc<3||nc>5)continue; if(isRed(p)){if(nr<7)continue;}else{if(nr>2)continue;} if(board[nr][nc]===null||(isRed(board[nr][nc])?'r':'b')!==me)mv.push({fr:r,fc:c,tr:nr,tc:nc});}
+    }else if(t==='k'){
+      const cand=[[1,0],[-1,0],[0,1],[0,-1]];
+      for(const [dr,dc] of cand){const nr=r+dr,nc=c+dc; if(!inB(nr,nc)||nc<3||nc>5)continue; if(isRed(p)){if(nr<7)continue;}else{if(nr>2)continue;} if(board[nr][nc]===null||(isRed(board[nr][nc])?'r':'b')!==me)mv.push({fr:r,fc:c,tr:nr,tc:nc});}
+    }else if(t==='p'){
+      const dir=isRed(p)?-1:1; const cand=[[dir,0]]; const crossed=isRed(p)?r<=4:r>=5;
+      if(crossed){cand.push([0,1],[0,-1]);}
+      for(const [dr,dc] of cand){const nr=r+dr,nc=c+dc; if(inB(nr,nc)&&(board[nr][nc]===null||(isRed(board[nr][nc])?'r':'b')!==me))mv.push({fr:r,fc:c,tr:nr,tc:nc});}
+    }
+  }
+  return mv;
+}
+function xqIsCheck(board,color){
+  const kp=xqKingPos(board,color); if(!kp)return false;
+  return xqPseudo(board,opp(color)).some(m=>m.tr===kp[0]&&m.tc===kp[1]);
+}
+function xqLegal(board,color){
+  return xqPseudo(board,color).filter(m=>{const nb=xqApply(board,m); return !xqIsCheck(nb,color)&&!xqFaceOff(nb);});
+}
+function xqOrder(moves,board){return moves.slice().sort((a,b)=>{const va=board[a.tr][a.tc]!==null?xqVal(board[a.tr][a.tc]):0; const vb=board[b.tr][b.tc]!==null?xqVal(board[b.tr][b.tc]):0; return vb-va;});}
+function negamax(board,depth,alpha,beta,color){
+  if(depth===0) return color==='r'?xqEval(board):-xqEval(board);
+  const moves=xqLegal(board,color);
+  if(moves.length===0) return xqIsCheck(board,color)? -99000-depth : 0;
+  let best=-1e9;
+  for(const m of xqOrder(moves,board)){
+    const nb=xqApply(board,m);
+    const val=-negamax(nb,depth-1,-beta,-alpha,opp(color));
+    if(val>best)best=val;
+    if(best>alpha)alpha=best;
+    if(alpha>=beta)break;
+  }
+  return best;
+}
+function xqBestMove(){
+  const moves=xqLegal(xqBoard,'b'); if(moves.length===0)return null;
+  if(xqMode==='easy'){
+    const caps=moves.filter(m=>xqBoard[m.tr][m.tc]!==null);
+    if(caps.length&&Math.random()<0.6) return caps[Math.floor(Math.random()*caps.length)];
+    return moves[Math.floor(Math.random()*moves.length)];
+  }
+  const depth=xqMode==='hard'?3:2;
+  let best=null,bestVal=-1e9,alpha=-1e9,beta=1e9;
+  for(const m of xqOrder(moves,xqBoard)){
+    const nb=xqApply(xqBoard,m);
+    const val=-negamax(nb,depth-1,-beta,-alpha,'r');
+    if(val>bestVal){bestVal=val;best=m;}
+    if(val>alpha)alpha=val;
+  }
+  return best;
+}
+function xqSetDiff(d){ if(xqDaily) return; xqCurDiff=d; xqNew(); }
+function xqStartDaily(key){ curDailyKey=key; lsDel(dailySaveKey('xiangqi',key)); xqCurDiff=['easy','medium','hard'][seedFromDate(key)%3]; xqNew(true); }
+function xqSaveDaily(){
+  if(!xqDaily) return;
+  lsSet(dailySaveKey('xiangqi',curDailyKey), JSON.stringify({board:xqBoard,curDiff:xqCurDiff,history:xqHistory,turn:xqTurn,check:xqCheck}));
+}
+function xqContinueDaily(dateKey){
+  const raw=lsGet(dailySaveKey('xiangqi',dateKey)); if(!raw) return false;
+  const d=JSON.parse(raw);
+  curDailyKey=dateKey; xqBoard=d.board.map(r=>r.slice()); xqCurDiff=d.curDiff;
+  xqHistory=d.history.map(b=>b.map(r=>r.slice())); xqTurn=d.turn||'r';
+  xqOver=false; xqThinking=false; xqCheck=!!d.check; xqSel=null; xqMoves=null; xqDaily=true;
+  document.querySelectorAll('#xiangqiDiff .chip').forEach(c=>c.classList.toggle('on',c.dataset.d===xqCurDiff));
+  document.getElementById('xiangqiDiff').classList.add('locked');
+  document.getElementById('xqInfo').textContent='每日挑战 · 你执红 · 先手';
+  document.getElementById('xqThinking').textContent='';
+  showView('xiangqi');
+  requestAnimationFrame(xqDraw);
+  return true;
+}
+function xqNew(daily){
+  xqBoard=XQ_INIT.map(r=>r.slice()); xqTurn='r'; xqOver=false; xqHistory=[]; xqSel=null; xqMoves=null; xqThinking=false; xqCheck=false; xqDaily=!!daily;
+  document.querySelectorAll('#xiangqiDiff .chip').forEach(c=>c.classList.toggle('on',c.dataset.d===xqCurDiff));
+  document.getElementById('xiangqiDiff').classList.toggle('locked', xqDaily);
+  document.getElementById('xqInfo').textContent= xqDaily ? '每日挑战 · 你执红 · 先手' : '你执红 · 先手';
+  document.getElementById('xqThinking').textContent='';
+  showView('xiangqi');
+  requestAnimationFrame(xqDraw);
+}
+function exitXiangqi(){ if(xqDaily&&!xqOver) xqSaveDaily(); xqOver=true; xqDaily=false; showView('home'); }
+function xqDraw(){
+  const cv=document.getElementById('xiangqiCanvas');
+  const appW=document.getElementById('app').clientWidth||460;
+  const W=Math.min(appW-20,460);
+  const pad=W*0.06, cell=(W-2*pad)/(X_COLS-1), H=2*pad+cell*(X_ROWS-1);
+  const dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+'px'; cv.style.height=H+'px';
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='#7a5230'; ctx.lineWidth=1;
+  for(let r=0;r<X_ROWS;r++){ctx.beginPath(); ctx.moveTo(pad,pad+r*cell); ctx.lineTo(pad+(X_COLS-1)*cell,pad+r*cell); ctx.stroke();}
+  for(let c=0;c<X_COLS;c++){ctx.beginPath(); ctx.moveTo(pad+c*cell,pad); ctx.lineTo(pad+c*cell,pad+4*cell); ctx.stroke(); ctx.beginPath(); ctx.moveTo(pad+c*cell,pad+5*cell); ctx.lineTo(pad+c*cell,pad+9*cell); ctx.stroke();}
+  ctx.beginPath(); ctx.moveTo(pad+3*cell,pad); ctx.lineTo(pad+5*cell,pad+2*cell); ctx.moveTo(pad+5*cell,pad); ctx.lineTo(pad+3*cell,pad+2*cell); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad+3*cell,pad+7*cell); ctx.lineTo(pad+5*cell,pad+9*cell); ctx.moveTo(pad+5*cell,pad+7*cell); ctx.lineTo(pad+3*cell,pad+9*cell); ctx.stroke();
+  ctx.fillStyle='#9a7b4f'; ctx.font=(cell*0.46)+'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('楚 河',pad+2*cell,pad+4.5*cell); ctx.fillText('漢 界',pad+6*cell,pad+4.5*cell);
+  for(let r=0;r<X_ROWS;r++)for(let c=0;c<X_COLS;c++){
+    const p=xqBoard[r][c]; if(!p)continue;
+    const x=pad+c*cell,y=pad+r*cell,red=isRed(p);
+    ctx.beginPath(); ctx.arc(x,y,cell*0.42,0,7); ctx.fillStyle='#f7e3b0'; ctx.fill();
+    ctx.lineWidth=1.5; ctx.strokeStyle=red?'#c0392b':'#2c3e50'; ctx.stroke();
+    ctx.fillStyle=red?'#c0392b':'#2c3e50'; ctx.font='bold '+(cell*0.5)+'px serif'; ctx.fillText(XQ_CHAR[p],x,y);
+  }
+  if(xqSel){
+    ctx.beginPath(); ctx.arc(pad+xqSel.fc*cell,pad+xqSel.fr*cell,cell*0.46,0,7); ctx.lineWidth=2.5; ctx.strokeStyle='#19c2a0'; ctx.stroke();
+    if(xqMoves)xqMoves.forEach(m=>{ctx.beginPath(); ctx.arc(pad+m.tc*cell,pad+m.tr*cell, xqBoard[m.tr][m.tc]?cell*0.46:cell*0.16,0,7); ctx.fillStyle=xqBoard[m.tr][m.tc]?'rgba(192,57,43,.35)':'rgba(25,194,160,.5)'; ctx.fill();});
+  }
+  if(xqCheck){const kp=xqKingPos(xqBoard,xqTurn); if(kp){ctx.beginPath(); ctx.arc(pad+kp[1]*cell,pad+kp[0]*cell,cell*0.5,0,7); ctx.lineWidth=3; ctx.strokeStyle='#ff5252'; ctx.stroke();}}
+}
+function xqTap(e){
+  if(xqOver||xqThinking||xqTurn!=='r')return;
+  const cv=document.getElementById('xiangqiCanvas'); const rect=cv.getBoundingClientRect();
+  const px=(e.clientX)-rect.left, py=(e.clientY)-rect.top;
+  const W=cv.clientWidth, pad=W*0.06, cell=(W-2*pad)/(X_COLS-1);
+  const c=Math.round((px-pad)/cell), r=Math.round((py-pad)/cell);
+  if(r<0||r>=X_ROWS||c<0||c>=X_COLS)return;
+  if(xqSel){const m=xqMoves.find(m=>m.tr===r&&m.tc===c); if(m){xqDoMove(m);return;}}
+  const p=xqBoard[r][c];
+  if(p&&isRed(p)){xqSel={r,c}; xqMoves=xqLegal(xqBoard,'r').filter(m=>m.fr===r&&m.fc===c); xqDraw();}
+  else{xqSel=null; xqMoves=null; xqDraw();}
+}
+function xqDoMove(m){
+  xqHistory.push(xqBoard.map(row=>row.slice()));
+  xqBoard[m.tr][m.tc]=xqBoard[m.fr][m.fc]; xqBoard[m.fr][m.fc]=null;
+  xqSel=null; xqMoves=null; xqCheck=xqIsCheck(xqBoard,'b'); xqDraw();
+  if(xqLegal(xqBoard,'b').length===0){xqOver=true; xqEnd('你赢了！🎉'); return;}
+  xqTurn='b';
+  document.getElementById('xqInfo').textContent=xqCheck?'将军！AI 思考中…':'AI 思考中…';
+  xqThinking=true; document.getElementById('xqThinking').textContent='AI 思考中…';
+  setTimeout(xqAIMove,60);
+}
+function xqAIMove(){
+  const m=xqBestMove();
+  xqThinking=false; document.getElementById('xqThinking').textContent='';
+  if(!m){xqOver=true; xqEnd('平局'); return;}
+  xqBoard[m.tr][m.tc]=xqBoard[m.fr][m.fc]; xqBoard[m.fr][m.fc]=null;
+  xqCheck=xqIsCheck(xqBoard,'r'); xqDraw(); xqTurn='r';
+  if(xqLegal(xqBoard,'r').length===0){xqOver=true; xqEnd(xqCheck?'将军！你无路可走，AI 赢了':'和棋'); return;}
+  document.getElementById('xqInfo').textContent=xqCheck?'将军！轮到你（红）':'轮到你（红）';
+  xqSaveDaily();
+}
+function xqEnd(msg){
+  document.getElementById('xqInfo').textContent=msg;
+  document.getElementById('chessTitle').textContent=msg;
+  document.getElementById('chessSub').textContent=(xqDaily?'每日挑战 · ':'难度：')+({easy:'容易',medium:'中等',hard:'困难'}[xqCurDiff]);
+  if(xqDaily && msg.indexOf('你赢了')>=0) recordDailyDone('xiangqi', curDailyKey);
+  if(xqDaily) lsDel(dailySaveKey('xiangqi',curDailyKey));
+  document.getElementById('chessOverlay').classList.add('active');
+}
+function xqUndo(){
+  if(xqThinking||xqHistory.length===0){toast('无法悔棋');return;}
+  let snap=xqHistory.pop(); if(xqHistory.length)snap=xqHistory.pop();
+  xqBoard=snap?snap.map(r=>r.slice()):XQ_INIT.map(r=>r.slice());
+  xqTurn='r'; xqOver=false; xqSel=null; xqMoves=null; xqCheck=false;
+  document.getElementById('xqInfo').textContent='你执红 · 先手';
+  xqDraw();
+}
+function xqRestart(){ if(xqDaily) xqStartDaily(curDailyKey); else xqNew(); }
+function closeChess(){ document.getElementById('chessOverlay').classList.remove('active'); }
+function chessReplay(){ document.getElementById('chessOverlay').classList.remove('active'); if(document.getElementById('view-gomoku').classList.contains('active')){ if(gDaily) gomokuStartDaily(curDailyKey); else gomokuNew(); } else { if(xqDaily) xqStartDaily(curDailyKey); else xqNew(); } }
+document.getElementById('gomokuCanvas').addEventListener('click',gomokuTap);
+document.getElementById('xiangqiCanvas').addEventListener('click',xqTap);
+
+// 初始化首页统计
+refreshHome();
+</script>
+</body>
+</html>
