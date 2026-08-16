@@ -186,16 +186,64 @@
 
   /* 难度锁定（每日挑战） */
   .diff-chips.locked{pointer-events:none; opacity:.65;}
+
+  /* 锁屏 */
+  #lockScreen{position:fixed; inset:0; z-index:999; background:linear-gradient(160deg,#0fa98a,#13a98d 60%,#0d8f76); display:flex; align-items:center; justify-content:center; padding:24px;}
+  .lock-card{background:#fff; border-radius:24px; padding:30px 26px; width:100%; max-width:330px; text-align:center; box-shadow:0 20px 50px rgba(0,0,0,.25);}
+  .lock-logo{font-size:46px;}
+  .lock-title{font-size:26px; font-weight:800; color:#0fa98a; letter-spacing:2px; margin-top:4px;}
+  .lock-sub{font-size:14px; color:#6b7d79; margin:8px 0 20px;}
+  .lock-input{width:100%; box-sizing:border-box; padding:14px 16px; font-size:16px; border:1.5px solid #cfe6df; border-radius:14px; outline:none; margin-bottom:14px;}
+  .lock-input:focus{border-color:#19c2a0;}
+  .lock-btn{width:100%; padding:14px; font-size:16px; font-weight:700; color:#fff; background:#19c2a0; border:none; border-radius:14px; cursor:pointer;}
+  .lock-btn:active{background:#0fa98a;}
+  .lock-btn:disabled{opacity:.6; cursor:default;}
+  .lock-err{color:#ff5252; font-size:13px; min-height:18px; margin-top:10px;}
+  .lock-hint{color:#9aabA6; font-size:11px; margin-top:14px; line-height:1.5;}
+  @keyframes shake{0%,100%{transform:translateX(0);}20%,60%{transform:translateX(-8px);}40%,80%{transform:translateX(8px);}}
+  .shake{animation:shake .4s;}
+
+  /* 记事 / 待办 */
+  .note-area{width:100%; box-sizing:border-box; min-height:120px; border:1.5px solid var(--line); border-radius:14px; padding:12px; font-size:15px; font-family:inherit; resize:vertical; outline:none;}
+  .note-area:focus{border-color:var(--primary);}
+  .todo-item{display:flex; align-items:center; gap:12px; background:var(--card); border-radius:14px; padding:14px 16px; margin-bottom:10px; box-shadow:0 4px 14px rgba(15,169,138,.06);}
+  .todo-check{width:24px; height:24px; border-radius:50%; border:2px solid var(--primary); flex:0 0 auto; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; cursor:pointer;}
+  .todo-item.done .todo-check{background:var(--primary);}
+  .todo-text{flex:1; font-size:15px; word-break:break-word;}
+  .todo-item.done .todo-text{text-decoration:line-through; color:var(--muted);}
+  .todo-del{color:#c9d6d2; font-size:16px; cursor:pointer; padding:0 4px;}
+  .todo-del:active{color:var(--error);}
+  .lock-link{color:#9aaba6; font-size:12px; margin-top:8px; cursor:pointer; text-decoration:underline;}
+  .lock-link:active{color:var(--primary-dark);}
+  .modal-sub{color:var(--muted); font-size:13px; margin:4px 0 16px; line-height:1.5; text-align:left;}
+  .fld{display:block; text-align:left; font-size:13px; color:var(--muted); margin-bottom:12px;}
+  .fld-input{width:100%; box-sizing:border-box; padding:11px 12px; font-size:15px; border:1.5px solid var(--line); border-radius:12px; outline:none; margin-top:6px; font-family:inherit;}
+  .fld-input:focus{border-color:var(--primary);}
+  .dav-msg{font-size:12px; margin:-4px 0 12px; min-height:16px; text-align:left; line-height:1.4;}
+  .dav-msg.ok{color:var(--primary-dark);}
+  .dav-msg.err{color:var(--error);}
 </style>
 </head>
 <body>
+<div id="lockScreen">
+  <div class="lock-card">
+    <div class="lock-logo">🎮</div>
+    <div class="lock-title">DFGAME</div>
+    <div class="lock-sub" id="lockSub">输入密码以访问</div>
+    <input id="lockPwd" class="lock-input" type="password" placeholder="访问密码" autocomplete="off">
+    <button class="lock-btn" id="lockBtn" onclick="submitLock()">进入</button>
+    <div class="lock-err" id="lockErr"></div>
+    <div class="lock-hint">数据已加密保存在本地与 WebDAV，忘记密码将无法恢复。</div>
+    <div class="lock-link" onclick="openDavSettings()">同步设置</div>
+  </div>
+</div>
 <div id="app">
 
   <!-- 首页 -->
   <section id="view-home" class="view active">
     <div class="topbar">
       <h1 class="brand">DF</h1>
-      <button class="icon-btn" onclick="toast('设置功能开发中')">⚙</button>
+      <button class="icon-btn" onclick="lockNow()" title="锁定">🔒</button>
     </div>
     <div class="container">
       <div class="card daily-card" onclick="openDaily()">
@@ -226,6 +274,16 @@
           <div class="g-icon g-xiangqi">象</div>
           <div class="g-name">中国象棋</div>
           <div class="g-act">开始 ›</div>
+        </div>
+        <div class="game-card" onclick="showView('calendar')">
+          <div class="g-icon" style="background:linear-gradient(135deg,#e0973a,#c97c1f)">📝</div>
+          <div class="g-name">日历记事</div>
+          <div class="g-act">›</div>
+        </div>
+        <div class="game-card" onclick="showView('todo')">
+          <div class="g-icon" style="background:linear-gradient(135deg,#5b8def,#3a6fd8)">✅</div>
+          <div class="g-name">待办清单</div>
+          <div class="g-act">›</div>
         </div>
       </div>
 
@@ -328,6 +386,38 @@
     </div>
   </section>
 
+  <!-- 日历记事 -->
+  <section id="view-calendar" class="view">
+    <div class="topbar"><button class="icon-btn" onclick="showView('home')">‹</button><h1>日历记事</h1><div style="width:38px"></div></div>
+    <div class="container">
+      <div class="card">
+        <div class="cal-head">
+          <button class="icon-btn" onclick="calMove(-1)">‹</button>
+          <div class="ttl" id="calNTitle"></div>
+          <button class="icon-btn" onclick="calMove(1)">›</button>
+        </div>
+        <div class="cal-grid" id="calNGrid"></div>
+      </div>
+      <div class="card">
+        <div class="cal-head"><div class="ttl" id="calNSel">选择日期</div></div>
+        <textarea id="calNote" class="note-area" placeholder="这一天的记事…" oninput="calNoteInput()"></textarea>
+        <button class="btn btn-primary" style="margin-top:12px; width:100%" onclick="calSaveNote()">保存记事</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 待办清单 -->
+  <section id="view-todo" class="view">
+    <div class="topbar"><button class="icon-btn" onclick="showView('home')">‹</button><h1>待办清单</h1><div style="width:38px"></div></div>
+    <div class="container">
+      <div class="card">
+        <input id="todoInput" class="lock-input" style="margin-bottom:10px" placeholder="添加待办，回车确认…" onkeydown="if(event.key==='Enter')todoAdd()">
+        <button class="btn btn-primary" style="width:100%" onclick="todoAdd()">添加</button>
+      </div>
+      <div id="todoList"></div>
+    </div>
+  </section>
+
   <!-- 棋类通用结算弹层 -->
   <div class="overlay" id="chessOverlay">
     <div class="modal">
@@ -367,6 +457,31 @@
   </div>
 
   <div class="toast" id="toast"></div>
+  <!-- WebDAV 同步设置 -->
+  <div class="overlay" id="davOverlay">
+    <div class="modal">
+      <h2>同步设置（WebDAV）</h2>
+      <p class="modal-sub">把游戏记录同步到另一台服务器。凭据只存本机，不进源码。</p>
+      <label class="fld">服务器地址（含末尾目录）
+        <input id="davUrl" class="fld-input" placeholder="https://dav.example.com/" autocomplete="off">
+      </label>
+      <label class="fld">账号
+        <input id="davUser" class="fld-input" placeholder="用户名" autocomplete="off">
+      </label>
+      <label class="fld">密码
+        <input id="davPass" class="fld-input" type="password" placeholder="密码" autocomplete="off">
+      </label>
+      <label class="fld">远程文件路径
+        <input id="davPath" class="fld-input" placeholder="sudoku-records.json" autocomplete="off">
+      </label>
+      <div class="dav-msg" id="davMsg"></div>
+      <div class="mbtns">
+        <button class="btn btn-ghost" onclick="testDav()">测试连接</button>
+        <button class="btn btn-ghost" onclick="closeDavSettings()">取消</button>
+        <button class="btn btn-primary" onclick="saveDavSettings()">保存</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -412,90 +527,88 @@ let S={board:[],solution:[],given:[],notes:[],sel:{r:-1,c:-1},diff:'medium',diff
   mode:'normal',err:0,elapsed:0,timer:null,status:'playing',note:false,hint:HINT_LIMIT,
   history:[],dateKey:null};
 
-/* ============ 存储 ============ */
-const LS=window.localStorage;
-function lsGet(k){try{return LS.getItem(k);}catch(e){return null;}}
-function lsSet(k,v){try{LS.setItem(k,v);}catch(e){} schedulePush();}
-function lsDel(k){try{LS.removeItem(k);}catch(e){} schedulePush();}
-
-/* ============ 远程存储（GitHub） ============
- * 把本地记录同步到 GitHub 仓库的一个 JSON 文件，实现换设备同步。
- * 注意：token 写在网页里，任何打开页面的人都能在 DevTools 看到。
- * 建议用「细粒度 PAT」，只授权这一个仓库的 contents 读写，降低风险。
- * 不想用远程时把 enabled 设为 false 即可，完全退回纯本地。
+/* ============ 存储（加密保险箱） ============
+ * 所有数据先放进内存中的 VM 对象，再用「密码派生密钥(AES-GCM)」加密后，
+ * 以单个 'vault' 字段存进 localStorage 与 WebDAV。这样即使服务器公开，
+ * 别人看到的也只是密文，看不到你的数独进度 / 日历记事 / 待办。
+ * 注意：没有后端，忘记密码 = 数据无法恢复。
  */
-const GH={
-  enabled:true,                       // false = 只用本地，不做远程同步
-  token:'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',            // 填入你的 Personal Access Token（需 repo 权限）
-  owner:'df2k',              // GitHub 用户名
-  repo:'df2k.github.io',                   // 仓库名（网页所在仓库）
-  path:'sudoku-records.json'          // 仓库内用来存记录的文件
-};
-let ghSha=null, ghBusy=false, ghTimer=null;
+const realLS=window.localStorage;
+const enc=new TextEncoder(), dec=new TextDecoder();
+const PBKDF2_ITER=150000;
+const FIXED_SALT=enc.encode('dfgame-v1-fixed-salt');
+let VM={}, VKEY=null, vaultTimer=null;
 
-function ghUrl(){ return 'https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/'+encodeURIComponent(GH.path); }
-function b64encode(str){ return btoa(unescape(encodeURIComponent(str))); }
-function b64decode(b64){ return decodeURIComponent(escape(atob(b64))); }
+function bufToB64(buf){const b=new Uint8Array(buf);let s='';for(let i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s);}
+function b64ToBuf(b64){const s=atob(b64);const b=new Uint8Array(s.length);for(let i=0;i<s.length;i++)b[i]=s.charCodeAt(i);return b.buffer;}
+async function deriveKey(pwd){const base=await crypto.subtle.importKey('raw',enc.encode(pwd),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt:FIXED_SALT,iterations:PBKDF2_ITER,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
+function parseBlob(blob){const p=blob.split('|');return{iv:b64ToBuf(p[0]),ct:b64ToBuf(p[1])};}
+async function encryptVM(){const iv=crypto.getRandomValues(new Uint8Array(12));const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},VKEY,enc.encode(JSON.stringify(VM)));return bufToB64(iv)+'|'+bufToB64(ct);}
+async function decryptVM(blob){const{iv,ct}=parseBlob(blob);const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv},VKEY,ct);return dec.decode(pt);}
+function readRawLocal(){const o={};for(let i=0;i<realLS.length;i++){const k=realLS.key(i);if(k!=='vault')o[k]=realLS.getItem(k);}return o;}
+async function forcePersist(){if(!VKEY)return;try{const blob=await encryptVM();realLS.setItem('vault',blob);schedulePush();}catch(e){console.warn('[vault] 保存失败',e);}}
+function persistVault(){if(!VKEY)return;clearTimeout(vaultTimer);vaultTimer=setTimeout(forcePersist,150);}
+function lsGet(k){return (k in VM&&VM[k]!=null)?VM[k]:null;}
+function lsSet(k,v){VM[k]=String(v);persistVault();}
+function lsDel(k){delete VM[k];persistVault();}
 
-function ghActive(){ return GH.enabled && GH.token && GH.token.indexOf('YOUR_')!==0; }
+/* ============ 远程存储（WebDAV 同步到另一台服务器） ============
+ * 把本地加密保险箱(vault)经 WebDAV(GET/PUT)同步到另一台服务器的一个 JSON 文件，
+ * 实现换设备同步。WebDAV 地址/账号/密码在「同步设置」里填写，只存本机 localStorage，
+ * 不进网页源码（因此换设备需各自配置一次）。
+ * 数据本体仍是 AES-GCM 密文（见 encryptVM），所以即使 WebDAV 服务器被直接访问，
+ * 没有保险箱密码也解不开。不想用远程时把 DAV.enabled 设为 false 即可，退回纯本地。
+ * 注意：浏览器直连 WebDAV 需要该服务器允许跨域(CORS)，否则会同步失败；
+ *       若服务器无法开 CORS，请改用同域托管或反向代理（详见末尾说明）。
+ */
+const DAV_DEFAULT={enabled:false,url:'',user:'',pass:'',path:'sudoku-records.json'};
+let DAV=loadDavCfg();
+function loadDavCfg(){ try{ return Object.assign({},DAV_DEFAULT,JSON.parse(realLS.getItem('dav_cfg')||'{}')); }catch(e){ return Object.assign({},DAV_DEFAULT); } }
+function saveDavCfg(){ try{ realLS.setItem('dav_cfg',JSON.stringify(DAV)); }catch(e){} }
 
-// 兼容 classic (ghp_) 和 fine-grained (github_pat_) 两种 token 格式
-function ghAuth(){ return 'Bearer '+GH.token; }
+let davBusy=false, davTimer=null;
 
-async function ghRead(){
-  const res=await fetch(ghUrl(),{headers:{Authorization:ghAuth(),Accept:'application/vnd.github+json'}});
-  if(res.status===404) return {data:{},sha:null};
-  if(!res.ok) throw new Error('ghRead '+res.status);
-  const j=await res.json();
-  return {data:JSON.parse(b64decode(j.content)),sha:j.sha};
+function davActive(){ return DAV.enabled && !!DAV.url && DAV.user!==undefined && DAV.user!==null; }
+function davFileUrl(){ return (DAV.url.replace(/\/+$/,'')+'/'+(DAV.path||'sudoku-records.json').replace(/^\/+/,'')); }
+function davAuthHeader(){ return 'Basic '+btoa(unescape(encodeURIComponent((DAV.user||'')+':'+(DAV.pass||'')))); }
+
+// 远程读取：返回 {data,mtime}；404/401 视为无数据
+async function davRead(){
+  const res=await fetch(davFileUrl(),{headers:{Authorization:davAuthHeader()}});
+  if(res.status===404||res.status===401) return {data:{},mtime:0};
+  if(!res.ok) throw new Error('davRead '+res.status);
+  let data={}; try{ data=JSON.parse(await res.text()); }catch(e){ data={}; }
+  const lm=res.headers.get('last-modified');
+  return {data, mtime: lm?Date.parse(lm):0};
 }
 
-async function ghWrite(data){
-  const body={message:'sync sudoku records',content:b64encode(JSON.stringify(data))};
-  if(ghSha) body.sha=ghSha;
-  const res=await fetch(ghUrl(),{
-    method:'PUT',
-    headers:{Authorization:ghAuth(),'Content-Type':'application/json',Accept:'application/vnd.github+json'},
-    body:JSON.stringify(body)
-  });
-  if(res.status===409){ // sha 冲突，重试一次
-    const r=await ghRead(); ghSha=r.sha;
-    if(ghSha){ body.sha=ghSha; const r2=await fetch(ghUrl(),{method:'PUT',headers:{Authorization:ghAuth(),'Content-Type':'application/json',Accept:'application/vnd.github+json'},body:JSON.stringify(body)}); if(!r2.ok) throw new Error('ghWrite retry '+r2.status); ghSha=(await r2.json()).content.sha; return; }
-  }
-  if(!res.ok) throw new Error('ghWrite '+res.status);
-  ghSha=(await res.json()).content.sha;
+// 远程写入：整文件 PUT（保险箱加密后整体覆盖，last-write-wins）
+async function davWrite(data){
+  const res=await fetch(davFileUrl(),{method:'PUT',headers:{Authorization:davAuthHeader(),'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if(!res.ok) throw new Error('davWrite '+res.status);
 }
 
-function collectAll(){ const o={}; for(let i=0;i<LS.length;i++){const k=LS.key(i); o[k]=LS.getItem(k);} return o; }
+async function collectAll(){ if(!VKEY) return readRawLocal(); return { vault: await encryptVM() }; }
 
-async function pushToGitHub(){
-  if(!ghActive()||ghBusy) return;
-  ghBusy=true;
-  try{
-    if(ghSha===null){ const r=await ghRead(); ghSha=r.sha; }
-    await ghWrite(collectAll());
-  }catch(e){ console.warn('[GitHub sync] push 失败：',e); }
-  finally{ ghBusy=false; }
+async function pushToDAV(){
+  if(!davActive()||davBusy) return;
+  davBusy=true;
+  try{ await davWrite(await collectAll()); }
+  catch(e){ console.warn('[WebDAV sync] push 失败：',e); }
+  finally{ davBusy=false; }
 }
 
-function schedulePush(){ clearTimeout(ghTimer); ghTimer=setTimeout(pushToGitHub,800); }
+function schedulePush(){ clearTimeout(davTimer); davTimer=setTimeout(pushToDAV,800); }
 
-async function pullFromGitHub(){
-  if(!ghActive()) return;
-  try{
-    const r=await ghRead();
-    ghSha=r.sha;
-    const data=r.data||{};
-    Object.keys(data).forEach(k=>{ if(data[k]!=null) LS.setItem(k,data[k]); });
-    console.log('[GitHub sync] 已拉取',Object.keys(data).length,'条记录');
-  }catch(e){ console.warn('[GitHub sync] pull 失败：',e); }
-}
+// 远程拉取已合并到解锁流程 tryUnlock() 中（需先有密码密钥才能解密保险箱）
 
 /* ============ 视图切换 ============ */
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
   if(name==='home')refreshHome();
+  if(name==='calendar')renderCalNotes();
+  if(name==='todo')renderTodos();
 }
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1600);}
 
@@ -1215,8 +1328,145 @@ function chessReplay(){ document.getElementById('chessOverlay').classList.remove
 document.getElementById('gomokuCanvas').addEventListener('click',gomokuTap);
 document.getElementById('xiangqiCanvas').addEventListener('click',xqTap);
 
-// 初始化：先从 GitHub 拉取记录，再渲染首页
-(async function(){ await pullFromGitHub(); refreshHome(); })();
+/* ============ 锁屏 / 密码解锁 ============ */
+function initLock(){
+  const inp=document.getElementById('lockPwd');
+  if(!inp) return;
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter') submitLock(); });
+  if(!window.crypto||!crypto.subtle){ const s=document.getElementById('lockSub'); if(s) s.textContent='⚠ 当前非安全环境，数据不会加密'; }
+}
+function lockError(msg){ const el=document.getElementById('lockErr'); if(el) el.textContent=msg||''; if(msg){ const c=document.querySelector('.lock-card'); if(c){ c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake'); } } }
+async function submitLock(){
+  const pwd=document.getElementById('lockPwd').value;
+  if(!pwd){ lockError('请输入密码'); return; }
+  const btn=document.getElementById('lockBtn'); btn.textContent='校验中…'; btn.disabled=true;
+  try{ await tryUnlock(pwd); }
+  catch(e){ lockError('出错：'+(e&&e.message?e.message:e)); }
+  finally{ btn.textContent='进入'; btn.disabled=false; }
+}
+function enterApp(){ const ls=document.getElementById('lockScreen'); if(ls) ls.style.display='none'; refreshHome(); }
+function lockNow(){ const inp=document.getElementById('lockPwd'); if(inp) inp.value=''; const e=document.getElementById('lockErr'); if(e) e.textContent=''; const ls=document.getElementById('lockScreen'); if(ls) ls.style.display='flex'; }
+
+async function tryUnlock(pwd){
+  lockError('');
+  // 非安全环境（非 HTTPS）：无法加密，直接以明文本地数据工作
+  if(!window.crypto||!crypto.subtle){
+    VKEY=null; VM=readRawLocal();
+    if(davActive()){ try{ const r=await davRead(); const d=r.data||{}; if(!d.vault) VM=Object.assign({},d); }catch(e){} }
+    return enterApp();
+  }
+  VKEY=await deriveKey(pwd);
+  let blob=null, fromRemote=false, remoteErr=false, rawData=null;
+  if(davActive()){
+    try{ const r=await davRead(); const data=r.data||{}; if(data.vault){ blob=data.vault; fromRemote=true; } else { rawData=data; } }
+    catch(e){ remoteErr=true; }
+  }
+  if(!blob && realLS.getItem('vault')){ blob=realLS.getItem('vault'); }
+  if(blob){
+    try{ VM=JSON.parse(await decryptVM(blob)); if(fromRemote) realLS.setItem('vault',blob); return enterApp(); }
+    catch(e){ VKEY=null; return lockError('密码错误，请重试'); }
+  }
+  // 无加密保险箱：迁移旧明文数据（数独进度等），或全新开始
+  let migrated=false;
+  if(rawData && Object.keys(rawData).length){ VM=Object.assign({},rawData); migrated=true; }
+  else { const localRaw=readRawLocal(); if(localRaw && Object.keys(localRaw).length){ VM=localRaw; migrated=true; } }
+  if(!migrated && davActive() && remoteErr && !realLS.getItem('vault')){ return lockError('无法连接 WebDAV，请检查同步设置或网络'); }
+  VM=VM||{};
+  await forcePersist();
+  return enterApp();
+}
+
+/* ============ 日历记事 ============ */
+let calNY=null, calNM=null, calNSel=null, calNoteTimer=null;
+const CAL_WEEK=['日','一','二','三','四','五','六'];
+function calMove(d){ calNM+=d; if(calNM<0){calNM=11;calNY--;} if(calNM>11){calNM=0;calNY++;} renderCalNotes(); }
+function renderCalNotes(){
+  if(calNY==null){ const d=new Date(); calNY=d.getFullYear(); calNM=d.getMonth(); }
+  if(!calNSel) calNSel=todayStr();
+  const tEl=document.getElementById('calNTitle'); if(tEl) tEl.textContent=calNY+'年'+(calNM+1)+'月';
+  const sEl=document.getElementById('calNSel'); if(sEl) sEl.textContent=calNSel;
+  const grid=document.getElementById('calNGrid'); if(!grid) return; grid.innerHTML='';
+  CAL_WEEK.forEach(w=>{const e=document.createElement('div');e.className='cal-dow';e.textContent=w;grid.appendChild(e);});
+  const first=new Date(calNY,calNM,1).getDay(); const days=new Date(calNY,calNM+1,0).getDate(); const today=todayStr();
+  for(let i=0;i<first;i++) grid.appendChild(document.createElement('div'));
+  for(let d=1;d<=days;d++){
+    const key=calNY+'-'+String(calNM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const cell=document.createElement('div'); cell.className='cal-day'; cell.textContent=d;
+    if(key===today) cell.classList.add('today');
+    if(key===calNSel) cell.classList.add('sel');
+    const note=lsGet('calnote_'+key);
+    if(note&&note.trim()){ cell.classList.add('done'); const b=document.createElement('span'); b.className='badge'; b.textContent='记'; cell.appendChild(b); }
+    cell.style.cursor='pointer';
+    cell.onclick=()=>{ calNSel=key; const ta=document.getElementById('calNote'); if(ta) ta.value=lsGet('calnote_'+key)||''; renderCalNotes(); };
+    grid.appendChild(cell);
+  }
+  const ta=document.getElementById('calNote'); if(ta) ta.value=lsGet('calnote_'+calNSel)||'';
+}
+function calNoteInput(){ if(!calNSel) return; const key=calNSel; const val=document.getElementById('calNote').value; clearTimeout(calNoteTimer); calNoteTimer=setTimeout(()=>{ if(val.trim()) lsSet('calnote_'+key,val); else lsDel('calnote_'+key); renderCalNotes(); },600); }
+function calSaveNote(){ if(!calNSel) return; const v=document.getElementById('calNote').value; if(v.trim()) lsSet('calnote_'+calNSel,v); else lsDel('calnote_'+calNSel); renderCalNotes(); toast('已保存'); }
+
+/* ============ 待办清单 ============ */
+function todoLoad(){ try{ return JSON.parse(lsGet('todos')||'[]')||[]; }catch(e){ return []; } }
+function todoSave(arr){ lsSet('todos',JSON.stringify(arr)); }
+function todoAdd(){ const inp=document.getElementById('todoInput'); if(!inp) return; const v=inp.value.trim(); if(!v) return; const arr=todoLoad(); arr.push({id:Date.now(),text:v,done:false}); todoSave(arr); inp.value=''; renderTodos(); }
+function todoToggle(id){ const arr=todoLoad(); const it=arr.find(x=>x.id===id); if(it) it.done=!it.done; todoSave(arr); renderTodos(); }
+function todoDel(id){ todoSave(todoLoad().filter(x=>x.id!==id)); renderTodos(); }
+function renderTodos(){
+  const arr=todoLoad(); const wrap=document.getElementById('todoList'); if(!wrap) return; wrap.innerHTML='';
+  if(arr.length===0){ wrap.innerHTML='<div class="card" style="text-align:center;color:var(--muted)">暂无待办，添加一条吧</div>'; return; }
+  arr.forEach(t=>{
+    const el=document.createElement('div'); el.className='todo-item'+(t.done?' done':'');
+    el.innerHTML='<div class="todo-check" onclick="todoToggle('+t.id+')">'+(t.done?'✓':'')+'</div><div class="todo-text" onclick="todoToggle('+t.id+')">'+escapeHtml(t.text)+'</div><div class="todo-del" onclick="todoDel('+t.id+')">✕</div>';
+    wrap.appendChild(el);
+  });
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ============ WebDAV 同步设置面板 ============ */
+function openDavSettings(){
+  const o=document.getElementById('davOverlay'); if(!o) return;
+  document.getElementById('davUrl').value=DAV.url||'';
+  document.getElementById('davUser').value=DAV.user||'';
+  document.getElementById('davPass').value=DAV.pass||'';
+  document.getElementById('davPath').value=DAV.path||'sudoku-records.json';
+  const m=document.getElementById('davMsg'); m.textContent=''; m.className='dav-msg';
+  o.classList.add('active');
+}
+function closeDavSettings(){ const o=document.getElementById('davOverlay'); if(o) o.classList.remove('active'); }
+async function testDav(){
+  const url=document.getElementById('davUrl').value.trim();
+  const user=document.getElementById('davUser').value;
+  const pass=document.getElementById('davPass').value;
+  const path=document.getElementById('davPath').value.trim()||'sudoku-records.json';
+  const msg=document.getElementById('davMsg');
+  if(!url||!user){ msg.textContent='请填写服务器地址和账号'; msg.className='dav-msg err'; return; }
+  const fileUrl=(url.replace(/\/+$/,'')+'/'+(path.replace(/^\/+/,'')));
+  const auth='Basic '+btoa(unescape(encodeURIComponent(user+':'+pass)));
+  msg.textContent='连接中…'; msg.className='dav-msg';
+  try{
+    const res=await fetch(fileUrl,{headers:{Authorization:auth}});
+    if(res.status===401){ msg.textContent='账号或密码错误（401）'; msg.className='dav-msg err'; return; }
+    if(res.status===404){ msg.textContent='连接正常（远程文件尚不存在，保存后会自动创建）'; msg.className='dav-msg ok'; return; }
+    if(res.ok){ msg.textContent='连接正常（HTTP '+res.status+'）'; msg.className='dav-msg ok'; return; }
+    msg.textContent='服务器返回 HTTP '+res.status; msg.className='dav-msg err';
+  }catch(e){ msg.textContent='连接失败：'+(e&&e.message?e.message:e)+'（多为跨域 CORS 限制，需服务器允许跨域）'; msg.className='dav-msg err'; }
+}
+function saveDavSettings(){
+  const url=document.getElementById('davUrl').value.trim();
+  const user=document.getElementById('davUser').value;
+  const pass=document.getElementById('davPass').value;
+  const path=document.getElementById('davPath').value.trim()||'sudoku-records.json';
+  const msg=document.getElementById('davMsg');
+  if(!url||!user){ msg.textContent='请填写服务器地址和账号'; msg.className='dav-msg err'; return; }
+  DAV={enabled:true,url:url,user:user,pass:pass,path:path};
+  saveDavCfg();
+  msg.textContent='已保存，正在同步…'; msg.className='dav-msg ok';
+  if(VKEY) pushToDAV();
+  setTimeout(closeDavSettings,800);
+}
+
+// 初始化：先显示锁屏，解锁后再拉取并渲染
+initLock();
 </script>
 </body>
 </html>
