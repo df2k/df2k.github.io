@@ -592,6 +592,8 @@ async function collectAll(){ if(!VKEY) return readRawLocal(); return { vault: aw
 
 async function pushToDAV(){
   if(!davActive()||davBusy) return;
+  if(!VKEY) return;                                   // 非安全模式不推送
+  if(!VM||!Object.keys(VM).length){ console.warn('[WebDAV] 本地无记录，跳过推送，避免覆盖远程'); return; }
   davBusy=true;
   try{ await davWrite(await collectAll()); }
   catch(e){ console.warn('[WebDAV sync] push 失败：',e); }
@@ -1347,32 +1349,48 @@ async function submitLock(){
 function enterApp(){ const ls=document.getElementById('lockScreen'); if(ls) ls.style.display='none'; refreshHome(); }
 function lockNow(){ const inp=document.getElementById('lockPwd'); if(inp) inp.value=''; const e=document.getElementById('lockErr'); if(e) e.textContent=''; const ls=document.getElementById('lockScreen'); if(ls) ls.style.display='flex'; }
 
+// 合并远程数据到本地 VM：本地优先（已有键不动），且不引入空值。返回是否有变化。
+function mergeIntoVM(src, localWins){
+  if(!src||typeof src!=='object') return false;
+  let changed=false;
+  for(const k in src){
+    if(localWins && (k in VM) && VM[k]!=null) continue; // 本地权威：已有则保留
+    if(src[k]==null) continue;                          // 远程空值绝不覆盖本地
+    VM[k]=src[k]; changed=true;
+  }
+  return changed;
+}
+
 async function tryUnlock(pwd){
   lockError('');
-  // 非安全环境（非 HTTPS）：无法加密，直接以明文本地数据工作
+  // 非安全环境（非 HTTPS）：无法加密，直接以明文本地数据工作；远程只“补充缺失键”，绝不覆盖本地
   if(!window.crypto||!crypto.subtle){
     VKEY=null; VM=readRawLocal();
-    if(davActive()){ try{ const r=await davRead(); const d=r.data||{}; if(!d.vault) VM=Object.assign({},d); }catch(e){} }
+    if(davActive()){ try{ const r=await davRead(); mergeIntoVM(r.data||{}, true); }catch(e){ console.warn('[WebDAV] 拉取失败，保留本地',e); } }
     return enterApp();
   }
   VKEY=await deriveKey(pwd);
-  let blob=null, fromRemote=false, remoteErr=false, rawData=null;
+  // 1) 永远先加载本地保险箱（本地为权威，解锁流程绝不先动本地）
+  const localBlob=realLS.getItem('vault');
+  let localVM=null, localOk=false;
+  if(localBlob){ try{ localVM=JSON.parse(await decryptVM(localBlob)); localOk=true; }catch(e){ localOk=false; } }
+  if(localBlob && !localOk) return lockError('密码错误，请重试'); // 本地保险箱存在但解不开=密码错误
+  VM = localVM || {};
+  // 2) 尝试远程：仅“补充缺失键”，任何异常/损坏都忽略，绝不回写、绝不清空本地
   if(davActive()){
-    try{ const r=await davRead(); const data=r.data||{}; if(data.vault){ blob=data.vault; fromRemote=true; } else { rawData=data; } }
-    catch(e){ remoteErr=true; }
+    try{
+      const r=await davRead(); const data=r.data||{};
+      if(data.vault){
+        try{ const remoteVM=JSON.parse(await decryptVM(data.vault)); mergeIntoVM(remoteVM,true); }
+        catch(e){ console.warn('[WebDAV] 远程保险箱无法解密，已忽略，保留本地',e); }
+      } else if(Object.keys(data).length){
+        mergeIntoVM(data,true); // 旧版明文结构：同样只补充
+      }
+    }catch(e){ console.warn('[WebDAV] 拉取失败，保留本地',e); }
   }
-  if(!blob && realLS.getItem('vault')){ blob=realLS.getItem('vault'); }
-  if(blob){
-    try{ VM=JSON.parse(await decryptVM(blob)); if(fromRemote) realLS.setItem('vault',blob); return enterApp(); }
-    catch(e){ VKEY=null; return lockError('密码错误，请重试'); }
-  }
-  // 无加密保险箱：迁移旧明文数据（数独进度等），或全新开始
-  let migrated=false;
-  if(rawData && Object.keys(rawData).length){ VM=Object.assign({},rawData); migrated=true; }
-  else { const localRaw=readRawLocal(); if(localRaw && Object.keys(localRaw).length){ VM=localRaw; migrated=true; } }
-  if(!migrated && davActive() && remoteErr && !realLS.getItem('vault')){ return lockError('无法连接 WebDAV，请检查同步设置或网络'); }
-  VM=VM||{};
-  await forcePersist();
+  if(!VM) VM={};
+  // 3) 只要有数据就持久化（含把本地的变更推回远程）；本地原有数据永不被覆盖或清空
+  if(Object.keys(VM).length){ await forcePersist(); }
   return enterApp();
 }
 
